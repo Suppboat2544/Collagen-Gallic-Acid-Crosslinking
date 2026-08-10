@@ -3,8 +3,13 @@ Graph_model.data.features.atom
 ================================
 Node (atom) and edge (bond) feature vectors for PyG graph construction.
 
-Atom feature vector — 74 dimensions total
+Atom feature vector — 54 dimensions total  (== ATOM_FEAT_DIM, verified)
 ------------------------------------------
+NOTE: this is the *level-0* featuriser used by data/dataset.py only.
+The graph/ package uses a different, 35-dim featuriser
+(graph/level1_ligand.py::LIGAND_NODE_DIM) and that is what every model
+actually consumes. See the table in Graph_model/features/__init__.py.
+
 Segment                     Dims  Description
 ─────────────────────────── ──── ─────────────────────────────────────
 element one-hot (+ Other)    11   C N O S P F Cl Br I B + other
@@ -18,7 +23,8 @@ is_in_ring                    1   bool
 is_ring_size_3|4|5|6|7|8|>8  7   each as bool flag
 chirality                     4   no_chiral, CHI_CW, CHI_CCW, OTHER
 ─────────────────────────── ──── 
-ATOM_FEAT_DIM  =  54  (see ATOM_FEAT_DIM constant)
+                            ────
+total                        54   (== ATOM_FEAT_DIM)
 
 Bond feature vector — 12 dimensions total
 ------------------------------------------

@@ -34,12 +34,15 @@ Usage
 
 from __future__ import annotations
 
+import logging
 import warnings
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
 import torch
+
+logger = logging.getLogger(__name__)
 
 from .level1_ligand import (
     mol_to_ligand_graph,
@@ -145,6 +148,19 @@ class ThreeLevelGraphBuilder:
                 target_residues=target_res if target_res else None,
             )
         except Exception as exc:
+            # This fallback produces a receptor consisting of ONE all-zero
+            # residue with no edges. Any model reading data['residue'] is then
+            # training on an empty protein. warnings.warn() shows once per
+            # call site by default, which made a total loss of the protein
+            # level look like a single cosmetic warning — log it every time.
+            self._level2_failures = getattr(self, "_level2_failures", 0) + 1
+            logger.error(
+                "Level 2 (protein) graph FAILED (pH=%s, receptor=%s): %s — "
+                "substituting a single all-zero residue node. The receptor is "
+                "absent from this sample. Failure #%d. "
+                "If this is an ImportError, install biopython.",
+                ph, receptor, exc, self._level2_failures,
+            )
             warnings.warn(f"Level 2 failed (pH={ph}, receptor={receptor}): {exc}")
             prot_x    = np.zeros((1, PROTEIN_NODE_DIM), dtype=np.float32)
             prot_ei   = np.zeros((2, 0), dtype=np.int64)

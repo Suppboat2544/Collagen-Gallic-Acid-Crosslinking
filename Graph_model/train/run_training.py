@@ -728,6 +728,10 @@ def train_lolo_cv(
             disable=disable_tqdm,
         )
 
+        n_train_errors = 0
+        n_val_errors = 0
+        n_test_errors = 0
+
         for epoch in epoch_bar:
             # Train
             fold_model.train()
@@ -746,8 +750,23 @@ def train_lolo_cv(
                     optimizer.step()
                     ep_loss += loss.item()
                     nb += 1
-                except Exception:
+                except Exception as exc:
+                    # A bare `continue` here hid a ModuleNotFoundError on every
+                    # single batch: nb stayed 0, avg_train became 0.0, val_preds
+                    # stayed empty, and the fold reported NaN metrics as though
+                    # it had trained. Never swallow silently.
+                    n_train_errors += 1
+                    if n_train_errors <= 3:
+                        logger.error("Fold %d epoch %d train batch failed: %s",
+                                     fold.fold, epoch, exc, exc_info=True)
                     continue
+
+            if nb == 0:
+                raise RuntimeError(
+                    f"Fold {fold.fold} epoch {epoch}: every training batch "
+                    f"failed ({n_train_errors} errors). Refusing to report NaN "
+                    f"metrics as a result — see the logged traceback above."
+                )
 
             avg_train = ep_loss / max(nb, 1)
 
@@ -765,8 +784,19 @@ def train_lolo_cv(
                         nvb += 1
                         val_preds.extend(pred.cpu().view(-1).tolist())
                         val_tgts.extend(target.cpu().view(-1).tolist())
-                    except Exception:
+                    except Exception as exc:
+                        n_val_errors += 1
+                        if n_val_errors <= 3:
+                            logger.error("Fold %d epoch %d val batch failed: %s",
+                                         fold.fold, epoch, exc, exc_info=True)
                         continue
+
+            if not val_preds:
+                raise RuntimeError(
+                    f"Fold {fold.fold} epoch {epoch}: every validation batch "
+                    f"failed ({n_val_errors} errors). regression_metrics would "
+                    f"return NaN, which is not a result."
+                )
 
             avg_val = vl / max(nvb, 1)
             val_m = regression_metrics(val_preds, val_tgts)
@@ -803,8 +833,19 @@ def train_lolo_cv(
                     pred, _ = _forward_any(fold_model, batch, device)
                     test_preds.extend(pred.cpu().view(-1).tolist())
                     test_tgts.extend(batch.y.view(-1).tolist())
-                except Exception:
+                except Exception as exc:
+                    n_test_errors += 1
+                    if n_test_errors <= 3:
+                        logger.error("Fold %d test batch failed: %s",
+                                     fold.fold, exc, exc_info=True)
                     continue
+
+        if not test_preds:
+            raise RuntimeError(
+                f"Fold {fold.fold} ({fold.held_out_ligand}): every test batch "
+                f"failed ({n_test_errors} errors). This fold has no result — "
+                f"reporting NaN here would silently corrupt the LOLO aggregate."
+            )
 
         tm = regression_metrics(test_preds, test_tgts)
         fm = FoldMetrics(

@@ -36,8 +36,25 @@ from rdkit.Chem import rdMolDescriptors
 
 # ── SMARTS definitions ────────────────────────────────────────────────────────
 
-# 3,4,5-trihydroxyphenyl ring — core galloyl unit (gallic acid, PGG arms, pyrogallol)
-_SMARTS_GALLOYL  = "Oc1cc(O)c(O)cc1"      # 3,4,5 pattern (symmetric)
+# FIXME(features): this pattern is WRONG and matches nothing in the catalogue.
+# "Oc1cc(O)c(O)cc1" places hydroxyls at ring positions 1,3,4 (hydroxyquinol) —
+# they are NOT three-adjacent, so it does not match a galloyl/gallate ring.
+# Verified: galloyl_strict == 0 for all 9 ligands, gallic acid included.
+#
+# Consequences, all currently live:
+#   * the `galloyl_strict` feature is identically zero, so its 1.00 weight in
+#     _GALLOYL_WEIGHTS never contributes;
+#   * `galloyl_weighted` is carried entirely by the pyrogallol + catechol
+#     patterns, which BOTH match every galloyl ring — so each ring scores
+#     1.00 + 0.67 = 1.67 rather than 1.00 (gallic acid -> 1.67, PGG -> 8.35).
+#
+# The correct three-adjacent-hydroxyl pattern is:
+#     "[OX2H]c1c([OX2H])c([OX2H])ccc1"     # matches gallic acid exactly once
+#
+# NOT changed here on purpose: swapping it alters every fragment feature and
+# therefore every reported number, so it needs a deliberate re-run rather than
+# a silent edit. Current behaviour is pinned by tests/test_chemistry.py.
+_SMARTS_GALLOYL  = "Oc1cc(O)c(O)cc1"      # 1,3,4 — see FIXME above
 # alternative pyrogallol orientation (1,2,3-OH in pyrogallol ring)
 _SMARTS_PYROGALL = "Oc1cccc(O)c1O"
 # 3,4-catechol — ortho-dihydroxyphenyl (protocatechuic acid, dopamine-like)

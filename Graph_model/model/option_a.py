@@ -231,7 +231,11 @@ def _scalar_to_batch(
 
 def _encode_raw(data, B: int, device: torch.device):
     """Fall back to ConditionEncoder when pre-encoded fields are absent."""
-    from Graph_model.data.features.conditions import ConditionEncoder
+    # Graph_model.data.features has never existed — the package is
+    # Graph_model.features. Because this import sits inside forward(), it
+    # raised ModuleNotFoundError on EVERY forward pass of options A/B/C/D
+    # (B, C and D re-use _encode_raw), and train_lolo_cv swallowed it.
+    from Graph_model.features.conditions import ConditionEncoder
     enc = ConditionEncoder(strict=False)
     ph_list, te_list, bi_list, rf_list = [], [], [], []
 

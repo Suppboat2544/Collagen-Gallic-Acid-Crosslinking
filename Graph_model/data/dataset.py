@@ -57,12 +57,16 @@ except ImportError:
 from .anchor    import AnchorLoader
 from .augment   import PhenolicAugmentLoader
 from .config    import PROCESSED_DIR
-from .features  import (
+# NOTE: the features package lives at Graph_model/features, not
+# Graph_model/data/features. These were `.features` (one dot), which made
+# `import Graph_model.data` — and therefore Graph_model.data.config, and
+# therefore essentially the whole package — raise ModuleNotFoundError.
+from ..features import (
     ATOM_FEAT_DIM, BOND_FEAT_DIM,
     atom_features, GalloylFragmentDetector,
     ConditionEncoder,
 )
-from .features.atom import mol_to_edge_index_and_attr
+from ..features.atom import mol_to_edge_index_and_attr
 from .transfer  import PDBbindLoader
 
 # PyG import — optional at module level so the file can be imported for
@@ -256,9 +260,14 @@ class CollagenDockingDataset:
         cond = torch.tensor(cond_np, dtype=torch.float)              # [4]
 
         # ── Label ─────────────────────────────────────────────────────────────
-        dg = rec.get("delta_g", 0.0)
-        if isinstance(dg, float) and math.isnan(dg):
-            dg = 0.0
+        # A missing binding energy must DROP the row, never become 0.0. The
+        # target distribution is about -3.83 +/- 1.07 kcal/mol, so an imputed
+        # zero is a fabricated +3.5 sigma outlier that the model is then
+        # penalised for not predicting.
+        dg = rec.get("delta_g", None)
+        if dg is None or (isinstance(dg, float) and math.isnan(dg)):
+            logger.debug("Dropping %s: missing delta_g", rec.get("sample_id", "?"))
+            return None
         y = torch.tensor([[float(dg)]], dtype=torch.float)            # [1, 1]
 
         # ── Tier code ─────────────────────────────────────────────────────────

@@ -99,12 +99,17 @@ class HeteroDockingDataset:
         use_cache: bool = True,
         force_reload: bool = False,
         max_records: Optional[int] = None,
+        allow_high_failure_rate: bool = False,
     ) -> None:
         self.include_mmp1 = include_mmp1
         self.include_bipartite = include_bipartite
         self.use_cache = use_cache
         self.force_reload = force_reload
         self.max_records = max_records
+        # If >5% of rows fail to build, _build() raises rather than training on
+        # a silently truncated dataset. Set True only when you have inspected
+        # the reported failure reasons and accept them.
+        self.allow_high_failure_rate = allow_high_failure_rate
         self._data_list: List = []
         self._loaded = False
 
@@ -177,6 +182,7 @@ class HeteroDockingDataset:
         )
 
         failed = 0
+        failure_reasons: dict[str, int] = {}
         total = len(df)
 
         if verbose:
@@ -195,14 +201,41 @@ class HeteroDockingDataset:
                     self._data_list.append(data)
                 else:
                     failed += 1
+                    failure_reasons["row rejected (see debug log)"] = \
+                        failure_reasons.get("row rejected (see debug log)", 0) + 1
             except Exception as exc:
                 failed += 1
-                if failed <= 5:
-                    logger.debug("Row %d failed: %s", idx, exc)
+                key = f"{type(exc).__name__}: {exc}"
+                failure_reasons[key] = failure_reasons.get(key, 0) + 1
+                logger.warning("Row %d failed: %s", idx, exc)
+
+        # Never let rows disappear quietly — silent drops here are the most
+        # likely source of shifting record counts between runs and write-ups.
+        if failed:
+            summary = "; ".join(f"{n}x {reason}"
+                                for reason, n in sorted(failure_reasons.items(),
+                                                        key=lambda kv: -kv[1]))
+            logger.warning("[HeteroDataset] %d/%d rows dropped — %s",
+                           failed, total, summary)
 
         if verbose:
             print(f"[HeteroDataset] Built {len(self._data_list)} graphs "
-                  f"({failed} failed, skipped).")
+                  f"from {total} rows ({failed} dropped).")
+            for reason, n in sorted(failure_reasons.items(), key=lambda kv: -kv[1]):
+                print(f"    {n:>6} x  {reason}")
+
+        if (total and failed > total * 0.05
+                and not getattr(self, "allow_high_failure_rate", False)):
+            detail = "\n".join(
+                f"  {n} x {reason}"
+                for reason, n in sorted(failure_reasons.items(),
+                                        key=lambda kv: -kv[1])[:10]
+            )
+            raise RuntimeError(
+                f"[HeteroDataset] {failed}/{total} rows ({failed / total:.1%}) failed "
+                f"to build — refusing to train on a silently truncated dataset. "
+                f"Set allow_high_failure_rate=True to override.\n" + detail
+            )
 
     def _row_to_heterodata(self, row: pd.Series, builder) -> Optional[HeteroData]:
         """Convert one CSV row to a HeteroData via ThreeLevelGraphBuilder."""
@@ -218,7 +251,14 @@ class HeteroDockingDataset:
         # Parse numeric fields
         ph = _safe_float(row.get("pH", 7.0), 7.0)
         temp_c = _safe_float(row.get("temperature_C", 25.0), 25.0)
-        delta_g = _safe_float(row.get("best_energy_kcalmol", 0.0), 0.0)
+        # Missing binding energy => drop the row. Imputing 0.0 against a
+        # ~-3.83 +/- 1.07 kcal/mol target fabricates a +3.5 sigma outlier.
+        _nan = float("nan")
+        delta_g = _safe_float(row.get("best_energy_kcalmol", _nan), _nan)
+        if delta_g != delta_g:      # NaN
+            logger.debug("Dropping %s: missing best_energy_kcalmol",
+                         row.get("sample_id", "?"))
+            return None
         box_cx = _safe_float(row.get("box_center_x", 0.0), 0.0)
         box_cy = _safe_float(row.get("box_center_y", 0.0), 0.0)
         box_cz = _safe_float(row.get("box_center_z", 0.0), 0.0)
