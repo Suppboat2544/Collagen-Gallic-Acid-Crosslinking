@@ -1,4 +1,4 @@
-# Datasets and caches (not published with code)
+# Datasets and caches (not published)
 external_dataset/
 **/__pycache__/
 *.py[cod]
@@ -10,3 +10,7 @@ external_dataset/
 *.ckpt
 results/figs/
 .ipynb_checkpoints/
+
+# Local/private helpers (not published)
+_smoke_test*.py
+_summarize_interpret.py
