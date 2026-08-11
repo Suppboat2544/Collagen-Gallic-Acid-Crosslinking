@@ -51,10 +51,31 @@ them under `data/features/` (same modules).
 - Model D: three heads (collagen ΔG, MMP-1 ΔG, log-CSI) + Kendall uncertainty loss;
   MMP-1 head loss weight ×10 (120 MMP-1 vs ~2,052 collagen calculations)
 
+## Install
+
+From the repository root (`Collagen-Gallic-Acid-Crosslinking/`):
+
+```bash
+# recommended: editable package install (uses pyproject.toml)
+pip install -e .
+
+# or dependencies only
+pip install -r Graph_model/requirements.txt
+
+# optional conda env
+conda env create -f Graph_model/environment.yml
+conda activate graph-model
+pip install -e .
+```
+
+Install files:
+- `pyproject.toml` — package metadata + dependencies (`pip install -e .`)
+- `Graph_model/requirements.txt` — pip requirements list
+- `Graph_model/environment.yml` — conda environment template
+
 ## Reproduce figures / metrics
 
 ```bash
-pip install -r requirements.txt
 python -m Graph_model.train_main --help
 python -m Graph_model.viz.compare_models   # expects results/option_{a-i}_training.json
 ```

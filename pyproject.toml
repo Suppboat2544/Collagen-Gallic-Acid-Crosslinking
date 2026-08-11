@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "graph-model"
+version = "0.1.0"
+description = "Heterogeneous GNN for collagen / MMP-1 Vinardo ΔG and CSI prediction (Models A–I)"
+readme = "Graph_model/README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Supaporn Klabklaydee", email = "suppaporn.2544@gmail.com" },
+]
+keywords = ["gnn", "pytorch-geometric", "docking", "collagen", "vinardo"]
+dependencies = [
+  "torch>=2.6.0",
+  "torchvision>=0.21.0",
+  "torchaudio>=2.6.0",
+  "torch_geometric>=2.6.0",
+  "rdkit>=2024.3.1",
+  "numpy>=1.26.0",
+  "pandas>=2.2.0",
+  "scipy>=1.13.0",
+  "scikit-learn>=1.5.0",
+  "tqdm>=4.66.0",
+  "matplotlib>=3.9.0",
+  "seaborn>=0.13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Suppboat2544/Collagen-Gallic-Acid-Crosslinking"
+Source = "https://github.com/Suppboat2544/Collagen-Gallic-Acid-Crosslinking/tree/main/Graph_model"
+
+[tool.setuptools.packages.find]
+include = ["Graph_model*"]
+exclude = ["Graph_model.results*", "Graph_model.external_dataset*"]
