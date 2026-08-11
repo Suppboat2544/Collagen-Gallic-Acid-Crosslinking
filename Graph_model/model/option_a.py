@@ -9,8 +9,10 @@ Architecture
   Input  : Level-1 ligand molecular graph  (node_dim=35, edge_dim=13)
   GNN    : 4-layer GATv2Conv  (4 heads × 32 dim = 128 per node)
   Readout: global mean pool → h_lig  [B, 128]
-  Cond   : box_idx → Embedding(8, 16);  concat [ph, temp, rec] → Linear→32
-  Output : MLP([h_lig ‖ cond], 256, 1) → ΔG  (kcal/mol)
+  Cond   : box_idx → Embedding → 16-D; concat [ph, temp, rec, box] → 32-D
+  Output : MLP 160 → 256 → 128 → 1  → Vinardo ΔG (kcal/mol)
+
+  Matches Proposal_LLNL_bioRxiv.tex Model A (GATv2 baseline).
 
 Why GATv2 over vanilla GAT
 --------------------------
@@ -19,7 +21,9 @@ computing attention coefficients from a dynamic, non-linear combination of
 source and target node features.  It is strictly more expressive and drops in
 as a direct replacement with identical API.
 
-Expected performance : RMSE ~0.4–0.6 kcal/mol on LOLO-CV (Baseline 1).
+Reported LOLO-CV (bioRxiv Table IV): RMSE ≈ 1.33 kcal/mol, Spearman ρ ≈ 0.93,
+CSI ρ ≈ 0.90.  Single-split training logs may differ; do not confuse with
+Model D's single-fold checkpoint val_RMSE ≈ 0.549.
 
 References
 ----------

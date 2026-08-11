@@ -1,0 +1,134 @@
+{
+  "created_at": "2026-03-07T07:50:05.456007",
+  "models": {
+    "A": {
+      "name": "Option A \u2014 Baseline GATv2",
+      "best_epoch": 61,
+      "best_val_rmse": 1.376090033210485,
+      "wall_time_s": 24172.362845897675
+    },
+    "B": {
+      "name": "Option B \u2014 Dual Encoder CrossAttn",
+      "best_epoch": 19,
+      "best_val_rmse": 1.366359053624457,
+      "wall_time_s": 26143.350754976273
+    },
+    "C": {
+      "name": "Option C \u2014 Fragment MPNN",
+      "best_epoch": 1,
+      "best_val_rmse": 1.6747914193552098,
+      "wall_time_s": 4721.933685064316
+    },
+    "D": {
+      "name": "Option D \u2014 Multi-Task Selectivity",
+      "best_epoch": 18,
+      "best_val_rmse": 1.460407556324393,
+      "wall_time_s": 10295.819031000137,
+      "single_fold_ig_checkpoint": {
+        "best_epoch": 45,
+        "val_rmse": 0.549,
+        "note": "Used for Integrated Gradients in bioRxiv; not Table IV LOLO RMSE"
+      }
+    },
+    "E": {
+      "name": "Option E \u2014 pGET (novel)",
+      "best_epoch": 58,
+      "best_val_rmse": 1.3595228444168495,
+      "wall_time_s": 52612.793743133545
+    },
+    "F": {
+      "name": "Option F \u2014 DimeNet++",
+      "best_epoch": 26,
+      "best_val_rmse": 1.4296175077489541,
+      "wall_time_s": 60831.1760969162
+    },
+    "G": {
+      "name": "Option G \u2014 EGNN",
+      "best_epoch": 37,
+      "best_val_rmse": 1.4365739303566107,
+      "wall_time_s": 7721.1652410030365
+    },
+    "H": {
+      "name": "Option H \u2014 GGNN Sequential",
+      "best_epoch": 43,
+      "best_val_rmse": 1.355656444243337,
+      "wall_time_s": 22351.093326091766
+    },
+    "I": {
+      "name": "Option I \u2014 Graphormer",
+      "best_epoch": 84,
+      "best_val_rmse": 1.3382359271444375,
+      "wall_time_s": 39083.989871025085
+    }
+  },
+  "metric_note": "models.*.best_val_rmse values below are from single-split training logs (results/option_*_training.json). Manuscript Table IV uses LOLO-CV; see biorxiv_table_iv_lolo_cv. Model D best_epoch=45 / val_RMSE\u22480.549 is the single-fold IG checkpoint, not Table IV LOLO affinity RMSE.",
+  "biorxiv_table_iv_lolo_cv": {
+    "source": "Phukhao/Proposal_LLNL/Proposal_LLNL_bioRxiv.tex Table IV (tab:gnn)",
+    "units": "kcal/mol for RMSE/MAE; Spearman for rho and csi_rho",
+    "models": {
+      "A": {
+        "architecture": "GATv2 baseline",
+        "rmse": 1.33,
+        "mae": 0.91,
+        "rho": 0.93,
+        "csi_rho": 0.9
+      },
+      "B": {
+        "architecture": "Cross-attention",
+        "rmse": 1.47,
+        "mae": 1.01,
+        "rho": 0.91,
+        "csi_rho": 0.85
+      },
+      "C": {
+        "architecture": "Fragment MPNN",
+        "rmse": 1.51,
+        "mae": 1.05,
+        "rho": 0.89,
+        "csi_rho": 0.8
+      },
+      "D": {
+        "architecture": "Multi-task (3-head)",
+        "rmse": 1.39,
+        "mae": 0.95,
+        "rho": 0.92,
+        "csi_rho": 0.95
+      },
+      "E": {
+        "architecture": "pGET",
+        "rmse": 1.42,
+        "mae": 0.98,
+        "rho": 0.91,
+        "csi_rho": 0.85
+      },
+      "F": {
+        "architecture": "DimeNet++",
+        "rmse": 1.55,
+        "mae": 1.1,
+        "rho": 0.88,
+        "csi_rho": 0.8
+      },
+      "G": {
+        "architecture": "EGNN",
+        "rmse": 1.48,
+        "mae": 1.02,
+        "rho": 0.9,
+        "csi_rho": 0.85
+      },
+      "H": {
+        "architecture": "GGNN",
+        "rmse": 1.52,
+        "mae": 1.06,
+        "rho": 0.89,
+        "csi_rho": 0.8
+      },
+      "I": {
+        "architecture": "Graphormer",
+        "rmse": 1.45,
+        "mae": 1.0,
+        "rho": 0.91,
+        "csi_rho": 0.85
+      }
+    }
+  }
+}

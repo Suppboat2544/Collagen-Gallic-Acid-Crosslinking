@@ -1,0 +1,559 @@
+{
+  "model": "Option D \u2014 Multi-Task Selectivity GNN",
+  "best_epoch": 45,
+  "best_val_rmse": 0.5490540366749006,
+  "integrated_gradients": {
+    "EDC": {
+      "n_atoms": 11,
+      "convergence_delta": -0.15979108959436417,
+      "top_atoms": [
+        {
+          "atom_idx": 3,
+          "importance": 0.3576192557811737
+        },
+        {
+          "atom_idx": 8,
+          "importance": 0.1141027957201004
+        },
+        {
+          "atom_idx": 1,
+          "importance": 0.08038680255413055
+        },
+        {
+          "atom_idx": 5,
+          "importance": 0.07176060229539871
+        },
+        {
+          "atom_idx": 6,
+          "importance": 0.06313557922840118
+        },
+        {
+          "atom_idx": 7,
+          "importance": 0.0627383142709732
+        },
+        {
+          "atom_idx": 0,
+          "importance": 0.05897555500268936
+        },
+        {
+          "atom_idx": 9,
+          "importance": 0.05577406287193298
+        },
+        {
+          "atom_idx": 10,
+          "importance": 0.05577406287193298
+        },
+        {
+          "atom_idx": 2,
+          "importance": 0.0365881584584713
+        }
+      ],
+      "mean_importance": 0.09024815261363983,
+      "max_importance": 0.3576192557811737,
+      "std_importance": 0.08695770800113678
+    },
+    "EDC_Oacylisourea": {
+      "n_atoms": 16,
+      "convergence_delta": -0.07220971584320068,
+      "top_atoms": [
+        {
+          "atom_idx": 13,
+          "importance": 0.08062558621168137
+        },
+        {
+          "atom_idx": 7,
+          "importance": 0.05400458723306656
+        },
+        {
+          "atom_idx": 10,
+          "importance": 0.05046407878398895
+        },
+        {
+          "atom_idx": 1,
+          "importance": 0.04933326318860054
+        },
+        {
+          "atom_idx": 11,
+          "importance": 0.048087961971759796
+        },
+        {
+          "atom_idx": 5,
+          "importance": 0.04535231739282608
+        },
+        {
+          "atom_idx": 12,
+          "importance": 0.0448225662112236
+        },
+        {
+          "atom_idx": 8,
+          "importance": 0.04366166517138481
+        },
+        {
+          "atom_idx": 2,
+          "importance": 0.04149885103106499
+        },
+        {
+          "atom_idx": 0,
+          "importance": 0.040971606969833374
+        }
+      ],
+      "mean_importance": 0.043102484196424484,
+      "max_importance": 0.08062558621168137,
+      "std_importance": 0.013101499527692795
+    },
+    "NHS": {
+      "n_atoms": 7,
+      "convergence_delta": -0.1344912350177765,
+      "top_atoms": [
+        {
+          "atom_idx": 2,
+          "importance": 0.23252789676189423
+        },
+        {
+          "atom_idx": 3,
+          "importance": 0.19741806387901306
+        },
+        {
+          "atom_idx": 1,
+          "importance": 0.19220714271068573
+        },
+        {
+          "atom_idx": 6,
+          "importance": 0.1522303968667984
+        },
+        {
+          "atom_idx": 5,
+          "importance": 0.13332778215408325
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.08100573718547821
+        },
+        {
+          "atom_idx": 0,
+          "importance": 0.07882162928581238
+        }
+      ],
+      "mean_importance": 0.1525055170059204,
+      "max_importance": 0.23252789676189423,
+      "std_importance": 0.054649967700242996
+    },
+    "NHS_ester_intermediate": {
+      "n_atoms": 11,
+      "convergence_delta": -0.06268280744552612,
+      "top_atoms": [
+        {
+          "atom_idx": 1,
+          "importance": 0.09550348669290543
+        },
+        {
+          "atom_idx": 8,
+          "importance": 0.07875577360391617
+        },
+        {
+          "atom_idx": 0,
+          "importance": 0.07740434259176254
+        },
+        {
+          "atom_idx": 5,
+          "importance": 0.06005052104592323
+        },
+        {
+          "atom_idx": 2,
+          "importance": 0.0473482683300972
+        },
+        {
+          "atom_idx": 9,
+          "importance": 0.04466160014271736
+        },
+        {
+          "atom_idx": 6,
+          "importance": 0.04466159641742706
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.03157970309257507
+        },
+        {
+          "atom_idx": 10,
+          "importance": 0.0232677198946476
+        },
+        {
+          "atom_idx": 7,
+          "importance": 0.02326771803200245
+        }
+      ],
+      "mean_importance": 0.04996614530682564,
+      "max_importance": 0.09550348669290543,
+      "std_importance": 0.02393968217074871
+    },
+    "ellagic_acid": {
+      "n_atoms": 22,
+      "convergence_delta": 1.0449423789978027,
+      "top_atoms": [
+        {
+          "atom_idx": 16,
+          "importance": 0.47699809074401855
+        },
+        {
+          "atom_idx": 6,
+          "importance": 0.47699809074401855
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.4508252441883087
+        },
+        {
+          "atom_idx": 14,
+          "importance": 0.4508252441883087
+        },
+        {
+          "atom_idx": 10,
+          "importance": 0.42354345321655273
+        },
+        {
+          "atom_idx": 1,
+          "importance": 0.42354345321655273
+        },
+        {
+          "atom_idx": 19,
+          "importance": 0.3999519646167755
+        },
+        {
+          "atom_idx": 9,
+          "importance": 0.3999519646167755
+        },
+        {
+          "atom_idx": 3,
+          "importance": 0.38063517212867737
+        },
+        {
+          "atom_idx": 13,
+          "importance": 0.38063517212867737
+        }
+      ],
+      "mean_importance": 0.3489852249622345,
+      "max_importance": 0.47699809074401855,
+      "std_importance": 0.09326622635126114
+    },
+    "gallic_acid": {
+      "n_atoms": 12,
+      "convergence_delta": 0.6919442415237427,
+      "top_atoms": [
+        {
+          "atom_idx": 5,
+          "importance": 0.666002631187439
+        },
+        {
+          "atom_idx": 9,
+          "importance": 0.666002631187439
+        },
+        {
+          "atom_idx": 7,
+          "importance": 0.6529310345649719
+        },
+        {
+          "atom_idx": 3,
+          "importance": 0.599842369556427
+        },
+        {
+          "atom_idx": 1,
+          "importance": 0.5436500310897827
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.4174017310142517
+        },
+        {
+          "atom_idx": 11,
+          "importance": 0.4174017310142517
+        },
+        {
+          "atom_idx": 2,
+          "importance": 0.34127503633499146
+        },
+        {
+          "atom_idx": 0,
+          "importance": 0.26113349199295044
+        },
+        {
+          "atom_idx": 8,
+          "importance": 0.23340070247650146
+        }
+      ],
+      "mean_importance": 0.4387178122997284,
+      "max_importance": 0.666002631187439,
+      "std_importance": 0.1720191240310669
+    },
+    "pentagalloylglucose": {
+      "n_atoms": 81,
+      "convergence_delta": 1.0656418800354004,
+      "top_atoms": [
+        {
+          "atom_idx": 55,
+          "importance": 0.21582844853401184
+        },
+        {
+          "atom_idx": 68,
+          "importance": 0.21230173110961914
+        },
+        {
+          "atom_idx": 42,
+          "importance": 0.2064199000597
+        },
+        {
+          "atom_idx": 38,
+          "importance": 0.1975453495979309
+        },
+        {
+          "atom_idx": 40,
+          "importance": 0.18058976531028748
+        },
+        {
+          "atom_idx": 39,
+          "importance": 0.13276533782482147
+        },
+        {
+          "atom_idx": 61,
+          "importance": 0.1308814287185669
+        },
+        {
+          "atom_idx": 65,
+          "importance": 0.1308814287185669
+        },
+        {
+          "atom_idx": 52,
+          "importance": 0.13088126480579376
+        },
+        {
+          "atom_idx": 48,
+          "importance": 0.13088126480579376
+        }
+      ],
+      "mean_importance": 0.0966382548213005,
+      "max_importance": 0.21582844853401184,
+      "std_importance": 0.04066472128033638
+    },
+    "protocatechuic_acid": {
+      "n_atoms": 11,
+      "convergence_delta": 0.5797034502029419,
+      "top_atoms": [
+        {
+          "atom_idx": 6,
+          "importance": 0.7437466382980347
+        },
+        {
+          "atom_idx": 8,
+          "importance": 0.6790375113487244
+        },
+        {
+          "atom_idx": 3,
+          "importance": 0.6370266079902649
+        },
+        {
+          "atom_idx": 1,
+          "importance": 0.5389373302459717
+        },
+        {
+          "atom_idx": 10,
+          "importance": 0.37776321172714233
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.3777308464050293
+        },
+        {
+          "atom_idx": 5,
+          "importance": 0.34854644536972046
+        },
+        {
+          "atom_idx": 2,
+          "importance": 0.3326522707939148
+        },
+        {
+          "atom_idx": 0,
+          "importance": 0.2482115477323532
+        },
+        {
+          "atom_idx": 9,
+          "importance": 0.22058987617492676
+        }
+      ],
+      "mean_importance": 0.42923325300216675,
+      "max_importance": 0.7437466382980347,
+      "std_importance": 0.1806253343820572
+    },
+    "pyrogallol": {
+      "n_atoms": 9,
+      "convergence_delta": 0.4298771619796753,
+      "top_atoms": [
+        {
+          "atom_idx": 1,
+          "importance": 0.5381314158439636
+        },
+        {
+          "atom_idx": 5,
+          "importance": 0.5381314158439636
+        },
+        {
+          "atom_idx": 7,
+          "importance": 0.4704296886920929
+        },
+        {
+          "atom_idx": 3,
+          "importance": 0.23801977932453156
+        },
+        {
+          "atom_idx": 2,
+          "importance": 0.23203961551189423
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.23203961551189423
+        },
+        {
+          "atom_idx": 8,
+          "importance": 0.13629767298698425
+        },
+        {
+          "atom_idx": 0,
+          "importance": 0.13297905027866364
+        },
+        {
+          "atom_idx": 6,
+          "importance": 0.13297905027866364
+        }
+      ],
+      "mean_importance": 0.2945607900619507,
+      "max_importance": 0.5381314158439636,
+      "std_importance": 0.16257046163082123
+    }
+  },
+  "gradcam": {
+    "EDC": {
+      "n_atoms": 31,
+      "top_atoms": [
+        {
+          "atom_idx": 4,
+          "cam_score": 3.715193930275973e-09
+        },
+        {
+          "atom_idx": 5,
+          "cam_score": 3.715193930275973e-09
+        },
+        {
+          "atom_idx": 6,
+          "cam_score": 3.715193930275973e-09
+        },
+        {
+          "atom_idx": 7,
+          "cam_score": 3.715193930275973e-09
+        },
+        {
+          "atom_idx": 23,
+          "cam_score": 3.715193930275973e-09
+        }
+      ]
+    },
+    "EDC_Oacylisourea": {
+      "n_atoms": 46,
+      "top_atoms": [
+        {
+          "atom_idx": 0,
+          "cam_score": 3.286811794955824e-11
+        },
+        {
+          "atom_idx": 44,
+          "cam_score": 3.286811794955824e-11
+        },
+        {
+          "atom_idx": 23,
+          "cam_score": 3.286811794955824e-11
+        },
+        {
+          "atom_idx": 24,
+          "cam_score": 3.286811794955824e-11
+        },
+        {
+          "atom_idx": 25,
+          "cam_score": 3.286811794955824e-11
+        }
+      ]
+    },
+    "NHS": {
+      "n_atoms": 21,
+      "top_atoms": [
+        {
+          "atom_idx": 13,
+          "cam_score": 3.54210966113655e-11
+        },
+        {
+          "atom_idx": 12,
+          "cam_score": 3.54210966113655e-11
+        },
+        {
+          "atom_idx": 9,
+          "cam_score": 3.54210966113655e-11
+        },
+        {
+          "atom_idx": 8,
+          "cam_score": 3.54210966113655e-11
+        },
+        {
+          "atom_idx": 20,
+          "cam_score": 3.517362096028265e-11
+        }
+      ]
+    },
+    "NHS_ester_intermediate": {
+      "n_atoms": 33,
+      "top_atoms": [
+        {
+          "atom_idx": 0,
+          "cam_score": 5.7356980276424e-10
+        },
+        {
+          "atom_idx": 22,
+          "cam_score": 5.7356980276424e-10
+        },
+        {
+          "atom_idx": 23,
+          "cam_score": 5.7356980276424e-10
+        },
+        {
+          "atom_idx": 9,
+          "cam_score": 5.7356980276424e-10
+        },
+        {
+          "atom_idx": 8,
+          "cam_score": 5.7356980276424e-10
+        }
+      ]
+    },
+    "ellagic_acid": {
+      "n_atoms": 72,
+      "top_atoms": [
+        {
+          "atom_idx": 0,
+          "cam_score": 0.0
+        },
+        {
+          "atom_idx": 51,
+          "cam_score": 0.0
+        },
+        {
+          "atom_idx": 50,
+          "cam_score": 0.0
+        },
+        {
+          "atom_idx": 49,
+          "cam_score": 0.0
+        },
+        {
+          "atom_idx": 48,
+          "cam_score": 0.0
+        }
+      ]
+    }
+  }
+}

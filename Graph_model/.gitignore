@@ -1,0 +1,12 @@
+# Datasets and caches (not published with code)
+external_dataset/
+**/__pycache__/
+*.py[cod]
+.DS_Store
+*.pkl
+*.pickle
+*.pt
+*.pth
+*.ckpt
+results/figs/
+.ipynb_checkpoints/
