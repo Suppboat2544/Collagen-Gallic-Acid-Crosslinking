@@ -9,8 +9,10 @@ Architecture
   Input  : Level-1 ligand molecular graph  (node_dim=35, edge_dim=13)
   GNN    : 4-layer GATv2Conv  (4 heads × 32 dim = 128 per node)
   Readout: global mean pool → h_lig  [B, 128]
-  Cond   : box_idx → Embedding(8, 16);  concat [ph, temp, rec] → Linear→32
-  Output : MLP([h_lig ‖ cond], 256, 1) → ΔG  (kcal/mol)
+  Cond   : box_idx → Embedding → 16-D; concat [ph, temp, rec, box] → 32-D
+  Output : MLP 160 → 256 → 128 → 1  → Vinardo ΔG (kcal/mol)
+
+  Matches Proposal_LLNL_bioRxiv.tex Model A (GATv2 baseline).
 
 Why GATv2 over vanilla GAT
 --------------------------
@@ -19,7 +21,9 @@ computing attention coefficients from a dynamic, non-linear combination of
 source and target node features.  It is strictly more expressive and drops in
 as a direct replacement with identical API.
 
-Expected performance : RMSE ~0.4–0.6 kcal/mol on LOLO-CV (Baseline 1).
+Reported LOLO-CV (bioRxiv Table IV): RMSE ≈ 1.33 kcal/mol, Spearman ρ ≈ 0.93,
+CSI ρ ≈ 0.90.  Single-split training logs may differ; do not confuse with
+Model D's single-fold checkpoint val_RMSE ≈ 0.549.
 
 References
 ----------
@@ -231,11 +235,11 @@ def _scalar_to_batch(
 
 def _encode_raw(data, B: int, device: torch.device):
     """Fall back to ConditionEncoder when pre-encoded fields are absent."""
-    # Graph_model.data.features has never existed — the package is
-    # Graph_model.features. Because this import sits inside forward(), it
-    # raised ModuleNotFoundError on EVERY forward pass of options A/B/C/D
-    # (B, C and D re-use _encode_raw), and train_lolo_cv swallowed it.
-    from Graph_model.features.conditions import ConditionEncoder
+    # This import sits inside forward(), so a wrong path fails at RUNTIME, not
+    # import time — and train_lolo_cv used to swallow it, yielding NaN metrics
+    # for every fold of options A/B/C/D (B, C and D re-use _encode_raw).
+    # Covered by tests/test_training_guards.py.
+    from Graph_model.data.features.conditions import ConditionEncoder
     enc = ConditionEncoder(strict=False)
     ph_list, te_list, bi_list, rf_list = [], [], [], []
 

@@ -36,6 +36,10 @@ _MODEL_COLORS = {
     'C': '#FF9800',   # orange
     'D': '#9C27B0',   # purple
     'E': '#F44336',   # red (novel model highlighted)
+    'F': '#00BCD4',   # cyan
+    'G': '#795548',   # brown
+    'H': '#607D8B',   # blue-grey
+    'I': '#E91E63',   # pink
 }
 
 _DPI = 150
@@ -83,7 +87,7 @@ def _load_all_epoch_logs(results_dir: str | Path) -> dict[str, tuple[str, list[d
     """Load all per-model epoch logs. Returns {key: (model_name, epochs)}."""
     results_dir = Path(results_dir)
     out = {}
-    for key in ['a', 'b', 'c', 'd', 'e']:
+    for key in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']:
         path = results_dir / f"option_{key}_training.json"
         if path.exists():
             with open(path) as f:

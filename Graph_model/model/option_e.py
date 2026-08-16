@@ -6,6 +6,9 @@ Option E — pH-Aware Gated Equivariant Transformer (pGET)
 
 A novel architecture specifically designed for collagen-crosslinker binding
 energy prediction under variable pH and temperature conditions.
+In Proposal_LLNL_bioRxiv.tex, pGET is reported as an equivariant baseline
+(Models A and D lead on LOLO-CV affinity and CSI, respectively), not as the
+primary reported model.
 
 Novelty  (not previously published as an integrated system)
 --------------------------------------------------------------

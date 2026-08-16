@@ -1,7 +1,8 @@
 """
 Graph_model.model.config
 ==========================
-Shared hyperparameter defaults and dimension constants for all four model options.
+Shared hyperparameter defaults and dimension constants for Models A–I
+(Proposal_LLNL_bioRxiv.tex HeteroGNN benchmark).
 
 Dimensions at a glance
 ----------------------
@@ -52,7 +53,7 @@ __all__ = [
 
 @dataclass
 class ModelConfig:
-    """Common hyperparameters shared by all four options."""
+    """Common hyperparameters shared by Models A–I."""
     hidden_dim:     int   = 128
     n_layers:       int   = 4
     mlp_hidden:     int   = 256
@@ -104,7 +105,7 @@ class OptionDConfig(ModelConfig):
     Shared encoder → head_collagen, head_mmp1, head_selectivity.
     Loss uses Kendall et al. 2018 uncertainty weighting."""
     n_tasks:        int   = 3      # collagen ΔG | MMP-1 ΔG | selectivity index
-    mmp1_weight:    float = 10.0   # upweight sparse MMP-1 task (40 vs 6156 pts)
+    mmp1_weight:    float = 10.0   # upweight sparse MMP-1 task (120 vs ~2052)
     learn_log_var:  bool  = True   # learnable log-variance for uncertainty weighting
 
 

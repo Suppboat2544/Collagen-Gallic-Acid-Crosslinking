@@ -10,9 +10,14 @@ Architecture
                     (identical backbone to Option A)
 
   Three Prediction Heads (independent MLPs):
-    head_collagen : ΔG_collagen  [B, 1]   (6 156 training samples)
-    head_mmp1     : ΔG_MMP1      [B, 1]   (40 training samples)
-    head_si       : SI logit     [B, 1]   → exp(·) gives SI = exp(ΔΔG / RT)
+    head_collagen : ΔG_collagen  [B, 1]   (~2,052 collagen docking calcs)
+    head_mmp1     : ΔG_MMP1      [B, 1]   (120 MMP-1 runs; 3 conformers)
+    head_csi      : log-CSI      [B, 1]   docking-derived collagen selectivity
+
+  Matches Proposal_LLNL_bioRxiv.tex Model D (multi-task selectivity).
+  Reported LOLO-CV (Table IV): affinity RMSE ≈ 1.39 kcal/mol, CSI ρ = 0.95.
+  Single-fold best-epoch checkpoint may show val_RMSE ≈ 0.549 (IG analyses);
+  that is not the Table IV LOLO-CV affinity metric.
 
   Loss (Kendall et al. 2018 uncertainty weighting)
   ─────────────────────────────────────────────────
@@ -28,22 +33,21 @@ Architecture
     mmp1_weight = 10.0  (OptionDConfig default)
     L_mmp1 = mmp1_weight * MSE(pred_mmp1, tgt_mmp1)   [only non-NaN rows]
 
-  Selectivity Index
-  ─────────────────
-    SI_pred = exp( (ΔG_MMP1 − ΔG_collagen) / k_BT )
-
-    In log-space (numerically stable):
-      logSI_pred = (ΔG_mmp1 − ΔG_collagen) / kT
+  Collagen Selectivity Index (CSI)
+  ────────────────────────────────
+    Physics prior (log-space):
+      logCSI_pred = f_θ(h) + (ΔG_mmp1 − ΔG_collagen) / kT
     where kT = 0.592 kcal/mol at 298 K.
+    CSI = |ΔG_MMP| / |ΔG_col|; CSI < 1 indicates collagen selectivity.
 
-    SI_target must be provided as log(SI) ground-truth (NaN for collagen-only rows).
+    Targets use log-CSI where available (NaN for collagen-only rows).
 
   Returns
   -------
   dict with keys:
     'collagen'     : Tensor [B, 1]
     'mmp1'         : Tensor [B, 1]
-    'si'           : Tensor [B, 1]  (log SI)
+    'si'           : Tensor [B, 1]  (log-CSI / selectivity head; legacy key)
     'log_var'      : Tensor [3]     (learned log-variances, detached)
 
   compute_loss() method

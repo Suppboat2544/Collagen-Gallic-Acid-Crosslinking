@@ -33,9 +33,9 @@ from typing import Union
 
 import numpy as np
 
-# config lives at Graph_model/data/config.py — `..config` (i.e.
-# Graph_model.config) does not exist and raised ModuleNotFoundError on import.
-from ..data.config import (
+# config lives at Graph_model/data/config.py; this module is
+# Graph_model.data.features.conditions, so `..config` resolves correctly.
+from ..config import (
     PROPKA_PROTONATION,
     BOX_TYPE_VOCAB,
     PH_VALUES,

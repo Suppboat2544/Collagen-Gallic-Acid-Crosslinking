@@ -106,7 +106,7 @@ def test_galloyl_unit_count_matches_smarts_detection():
     With the old disconnected PGG string this found 9 units against a declared
     5 -- the five free gallic acids were each counted separately.
     """
-    from Graph_model.features.galloyl import GalloylFragmentDetector
+    from Graph_model.data.features.galloyl import GalloylFragmentDetector
 
     # The pyrogallol pattern is what actually identifies galloyl rings today
     # (see the FIXME in features/galloyl.py: _SMARTS_GALLOYL is malformed and
@@ -139,7 +139,7 @@ def test_strict_galloyl_pattern_matches_gallic_acid():
     gallic acid, the `galloyl_strict` feature is dead and its weight in
     `galloyl_weighted` never fires.
     """
-    from Graph_model.features.galloyl import GalloylFragmentDetector
+    from Graph_model.data.features.galloyl import GalloylFragmentDetector
 
     mol = Chem.MolFromSmiles(LIGAND_CATALOGUE["gallic_acid"]["smiles"])
     assert GalloylFragmentDetector.count_fragments(mol)["galloyl_strict"] == 1
@@ -147,7 +147,7 @@ def test_strict_galloyl_pattern_matches_gallic_acid():
 
 def test_detector_returns_finite_counts_for_every_ligand():
     """The fragment layer consumes these; a KeyError or NaN here is silent."""
-    from Graph_model.features.galloyl import GalloylFragmentDetector
+    from Graph_model.data.features.galloyl import GalloylFragmentDetector
 
     keys = ("galloyl_strict", "catechol", "pyrogallol",
             "total_aromatic_oh", "galloyl_weighted")

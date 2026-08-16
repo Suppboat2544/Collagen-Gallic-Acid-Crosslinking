@@ -36,7 +36,7 @@ def test_level1_node_dim_is_35():
 
 def test_atom_featuriser_dim_is_54():
     """features/atom.py — the level-0 featuriser used only by data/dataset.py."""
-    from Graph_model.features.atom import (
+    from Graph_model.data.features.atom import (
         atom_features, bond_features, ATOM_FEAT_DIM, BOND_FEAT_DIM)
 
     assert ATOM_FEAT_DIM == 54
@@ -54,7 +54,7 @@ def test_the_two_featurisers_are_known_to_differ():
     features/__init__.py must be rewritten too.
     """
     from Graph_model.graph.level1_ligand import LIGAND_NODE_DIM
-    from Graph_model.features.atom import ATOM_FEAT_DIM
+    from Graph_model.data.features.atom import ATOM_FEAT_DIM
 
     assert LIGAND_NODE_DIM != ATOM_FEAT_DIM, (
         "featurisers now agree — update the dimension table in "

@@ -3,7 +3,8 @@ Graph_model.graph.level1_ligand
 =================================
 Standard ligand molecular graph from a SMILES string.
 
-Node features  —  35 dimensions   (== LIGAND_NODE_DIM, verified at runtime)
+Node features  —  35 dimensions (bioRxiv Model A ligand atom features)
+                  (== LIGAND_NODE_DIM, verified at runtime by tests/test_features.py)
 ---------------------------------
 This is the featuriser every model actually consumes.
 
@@ -11,7 +12,7 @@ Segment                   Dims   Notes
 ─────────────────────── ──────  ─────────────────────────────────────────
 element one-hot + other    11    C N O S P F Cl Br I B + UNK
 hybridisation              5     SP SP2 SP3 OTHER + UNK
-formal charge              6     −2 −1 0 +1 +2 + other
+formal charge              6     −2 −1 0 +1 +2 + other  (charge bins incl. UNK)
 H-count                    6     0 1 2 3 4 + other
 aromaticity                1     bool
 ring membership            3     is_in_3 / is_in_5 / is_in_6

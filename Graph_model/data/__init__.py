@@ -3,9 +3,9 @@ Graph_model.data — data loading, feature engineering, and dataset assembly.
 
 Submodules are exposed lazily (PEP 562) for two reasons:
 
-1. Circular imports. Graph_model.features.conditions needs
+1. Circular imports. Graph_model.data.features.conditions needs
    Graph_model.data.config; eagerly importing .dataset here made that a cycle
-   (features -> conditions -> data -> dataset -> features), which raised
+   (data -> dataset -> features -> conditions -> data), which raised
    ImportError depending purely on which package was imported first.
 
 2. Cost. `from Graph_model.data.config import LIGAND_CATALOGUE` should not

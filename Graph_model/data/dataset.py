@@ -57,16 +57,16 @@ except ImportError:
 from .anchor    import AnchorLoader
 from .augment   import PhenolicAugmentLoader
 from .config    import PROCESSED_DIR
-# NOTE: the features package lives at Graph_model/features, not
-# Graph_model/data/features. These were `.features` (one dot), which made
-# `import Graph_model.data` — and therefore Graph_model.data.config, and
-# therefore essentially the whole package — raise ModuleNotFoundError.
-from ..features import (
+# The features package lives at Graph_model/data/features (restored by
+# upstream 69a6c14). On the north-review branch the directory was misplaced at
+# Graph_model/features, which made these imports fail and rendered the whole
+# data package unimportable. The imports were always right; the tree was wrong.
+from .features import (
     ATOM_FEAT_DIM, BOND_FEAT_DIM,
     atom_features, GalloylFragmentDetector,
     ConditionEncoder,
 )
-from ..features.atom import mol_to_edge_index_and_attr
+from .features.atom import mol_to_edge_index_and_attr
 from .transfer  import PDBbindLoader
 
 # PyG import — optional at module level so the file can be imported for

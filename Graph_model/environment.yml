@@ -1,0 +1,21 @@
+# Conda environment for Graph_model (optional alternative to pip)
+name: graph-model
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10,<3.14
+  - pip
+  - numpy>=1.26
+  - pandas>=2.2
+  - scipy>=1.13
+  - scikit-learn>=1.5
+  - matplotlib>=3.9
+  - seaborn>=0.13
+  - tqdm>=4.66
+  - rdkit>=2024.03
+  - pip:
+      - torch>=2.6.0
+      - torchvision>=0.21.0
+      - torchaudio>=2.6.0
+      - torch_geometric>=2.6.0

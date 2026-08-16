@@ -21,7 +21,16 @@ Requires Python 3.11+.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
+
+# editable install (preferred — provides the Graph_model package on sys.path)
+pip install -e .
+
+# or, requirements only
 pip install -r Graph_model/requirements.txt
+
+# optional conda
+conda env create -f Graph_model/environment.yml && conda activate graph-model
+
 pip install pytest          # for the test suite
 ```
 
@@ -207,3 +216,9 @@ Graph_model/
 scripts/      entry points
 tests/        pytest suite
 ```
+## See also
+
+- `Graph_model/README.md` — architecture table, layout, reproduction notes
+- `Graph_model/train_main.py` — upstream's Models A–I training entry point
+- Install files: `pyproject.toml`, `Graph_model/requirements.txt`,
+  `Graph_model/environment.yml`

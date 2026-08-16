@@ -59,29 +59,45 @@ def test_option_a_condition_encoder_import_resolves():
     """
     from Graph_model.model.option_a import _encode_raw
 
-    # only inspect real import statements — comments legitimately mention the
-    # bad path when explaining the historical bug
+    # The features package lives at Graph_model/data/features. Only inspect
+    # real import statements — comments legitimately mention the wrong path
+    # when explaining the historical bug.
     bad = [ln.strip() for ln in inspect.getsource(_encode_raw).splitlines()
            if ln.lstrip().startswith(("import ", "from "))
-           and "Graph_model.data.features" in ln]
+           and "Graph_model.features" in ln]
     assert not bad, (
-        f"Graph_model.data.features does not exist — use Graph_model.features: {bad}")
+        f"Graph_model.features does not exist — the package is "
+        f"Graph_model.data.features: {bad}")
 
     # prove it actually imports
-    from Graph_model.features.conditions import ConditionEncoder
+    from Graph_model.data.features.conditions import ConditionEncoder
     assert ConditionEncoder is not None
 
 
-def test_no_module_references_the_nonexistent_data_features_package():
-    """`Graph_model.data.features` has never existed. Catch new ones early."""
+def test_every_feature_import_targets_the_real_package():
+    """
+    The features package is Graph_model/data/features. On the north-review
+    branch the directory sat at Graph_model/features, so imports written for
+    the correct layout all failed. Upstream 69a6c14 restored the directory;
+    this test stops the tree and the imports drifting apart again.
+    """
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[1] / "Graph_model"
+    assert (root / "data" / "features" / "__init__.py").is_file(), (
+        "Graph_model/data/features/ is missing — the features package moved")
+    assert not (root / "features").is_dir() or not list(
+        (root / "features").glob("*.py")), (
+        "a second features package exists at Graph_model/features/ — "
+        "it will shadow or duplicate Graph_model/data/features/")
+
     offenders = []
     for py in root.rglob("*.py"):
         for i, line in enumerate(py.read_text().splitlines(), 1):
-            if "Graph_model.data.features" in line or "from .features" in line:
-                # docstring header lines are cosmetic; imports are not
-                if line.lstrip().startswith(("import ", "from ")):
-                    offenders.append(f"{py.relative_to(root)}:{i}: {line.strip()}")
-    assert not offenders, "broken imports:\n" + "\n".join(offenders)
+            if not line.lstrip().startswith(("import ", "from ")):
+                continue
+            if "Graph_model.features" in line:
+                offenders.append(f"{py.relative_to(root)}:{i}: {line.strip()}")
+    assert not offenders, (
+        "imports pointing at the nonexistent Graph_model.features:\n"
+        + "\n".join(offenders))
