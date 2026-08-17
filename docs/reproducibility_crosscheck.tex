@@ -1,0 +1,378 @@
+% =====================================================================
+%  Reproducibility cross-check — Collagen / Gallic-Acid Crosslinking
+%  Graph_model Models A-I  vs  Proposal_LLNL_bioRxiv.tex
+%
+%  Every number below was produced by executing the repository code on
+%  the released data. Provenance for each measurement is given in the
+%  right-hand column or the surrounding text.
+%
+%  Compile: pdflatex reproducibility_crosscheck.tex
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage[T1]{fontenc}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+
+\definecolor{okgreen}{RGB}{0,120,60}
+\definecolor{badred}{RGB}{175,0,30}
+\definecolor{warnamber}{RGB}{180,110,0}
+
+\newcommand{\ok}[1]{\textcolor{okgreen}{#1}}
+\newcommand{\bad}[1]{\textcolor{badred}{#1}}
+\newcommand{\warn}[1]{\textcolor{warnamber}{#1}}
+\newcommand{\code}[1]{\texttt{\small #1}}
+
+\newenvironment{callout}[1]{%
+  \par\medskip\noindent
+  \begin{minipage}{\linewidth}%
+  \rule{\linewidth}{1.2pt}\par\smallskip
+  \textbf{#1}\par\smallskip
+}{%
+  \par\smallskip\rule{\linewidth}{0.6pt}%
+  \end{minipage}\par\medskip
+}
+
+
+\title{Reproducibility Cross-Check:\\
+       \large Graph\_model Models A--I against the bioRxiv manuscript}
+\author{Automated audit --- executed against the released code and data}
+\date{2026-08-17}
+
+\begin{document}
+\sloppy
+\maketitle
+
+\begin{callout}{Summary of blocking findings}
+\begin{enumerate}\itemsep2pt
+  \item Under leave-one-ligand-out cross-validation on the released data,
+        Model~A attains Spearman $\rho = 0.163$; Table~IV reports $\rho = 0.93$.
+  \item On the v2 dataset $R^2$ is \emph{negative in 8 of 9 folds}
+        (mean $-2.00$): within any held-out ligand the model is worse than
+        predicting that ligand's own mean.
+  \item Model~A's LOLO RMSE ($1.047$) is \emph{worse} than a per-docking-box
+        mean predictor ($0.918$) and comparable to a global-mean predictor
+        ($1.008$). No baseline is reported in the manuscript.
+  \item The published training logs used $11{,}196$ records
+        ($6{,}196$ anchor $+\,5{,}000$ PDBbind), so reported RMSE mixes Vinardo
+        docking scores with PDBbind affinities.
+  \item Every MMP-1 record has an \emph{empty} receptor graph (0 residues),
+        in both the released cache and a clean rebuild.
+  \item Two ligand SMILES in the catalogue encoded the wrong molecule
+        (pentagalloylglucose, ellagic acid).
+\end{enumerate}
+\end{callout}
+
+\section{Scope and method}
+
+All measurements were obtained by running the repository code on the
+released Google-Drive bundle. Where a defect is reported, it was
+reproduced on \emph{pristine} \code{upstream/main} (commit \code{5cb24be})
+with no local modifications, to establish that it is pre-existing.
+
+\begin{itemize}\itemsep1pt
+  \item Hardware: Apple Silicon, PyTorch MPS backend (\code{torch 2.13.0}).
+  \item Data: \code{Graph\_model\_training\_bundle.zip} (v1 and v2),
+        \code{collagen\_gallic\_results.zip} (v2).
+  \item Protocol: \code{--lolo-cv}, anchor-only, \code{--max-epochs 200},
+        \code{--batch-size 16}, \code{--patience 15}, seed 0.
+\end{itemize}
+
+\section{Dataset provenance}
+
+\begin{longtable}{@{}p{6.0cm}rrp{4.2cm}@{}}
+\toprule
+\textbf{Quantity} & \textbf{Manuscript} & \textbf{Measured} & \textbf{Source} \\
+\midrule
+\endhead
+Collagen docking records      & 6{,}156 & 6{,}156 & \code{collagen\_..\_results.csv} \ok{(match)} \\
+MMP-1 records (v1 release)    & 120     & \bad{40}   & \code{mmp1\_..\_results.csv} \\
+MMP-1 records (v2 release)    & 120     & \ok{120}   & updated CSV \\
+MMP-1 records (\code{FULL\_335}) & ---  & 335     & new file in v2 \\
+Total cached graphs (v1)      & ---     & 6{,}196 & released \code{.pkl} \\
+Total graphs (v2 rebuild)     & ---     & 6{,}276 & \code{--force-reload} \\
+Training records used         & ---     & 11{,}196 & \code{n\_train}\,+\,\code{n\_val} in logs \\
+\quad = anchor $+$ PDBbind    & ---     & $6{,}196+5{,}000$ & \code{--max-transfer} default \\
+$\Delta G$ mean $\pm$ sd (kcal/mol) & --- & $-3.838 \pm 1.091$ & v1 cache \\
+Training device               & H100 (SI) & \bad{\code{cpu}} & \code{meta.device} in logs \\
+\bottomrule
+\caption{Record counts. The $9{,}517/1{,}679$ split in the published logs is
+$85/15$ of $11{,}196$, not of the $6{,}196$ anchor set.}
+\end{longtable}
+
+\begin{callout}{Recommended manuscript change}
+State explicitly whether Table~IV metrics are anchor-only. If PDBbind
+transfer records are included in the evaluation split, the reported
+kcal/mol RMSE is computed over a mixture of Vinardo docking scores and
+PDBbind experimental affinities, which are not the same quantity.
+\end{callout}
+
+\section{Table IV cross-check (Model A)}
+
+\begin{table}[h]\centering
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+ & \textbf{RMSE} & \textbf{MAE} & \textbf{Spearman $\rho$} \\
+\midrule
+Table~IV, Model A (claimed)          & 1.33 & 0.91 & \textbf{0.93} \\
+\midrule
+Measured LOLO, converged (v1 data)   & \textbf{1.047} & 0.940 & \bad{\textbf{0.163}} \\
+\quad (std over 9 folds)             & $\pm 0.613$ & --- & $\pm 0.074$ \\
+Measured LOLO, 10-epoch cap          & 0.938 & 0.818 & 0.167 \\
+\midrule
+Measured LOLO, converged (v2 data)   & \textbf{0.903} & 0.789 & \bad{\textbf{0.190}} \\
+\quad (std over 9 folds)             & $\pm 0.625$ & --- & $\pm 0.068$ \\
+\midrule
+Baseline v2: global training mean    & 1.029 & --- & --- \\
+Baseline v2: per-docking-box mean    & \textbf{0.935} & --- & --- \\
+Baseline v2: per-ligand mean (oracle)& \textbf{0.547} & --- & --- \\
+\bottomrule
+\end{tabular}
+\caption{Model A under LOLO-CV, anchor-only, seed 0, on both dataset
+snapshots. Folds terminated by early stopping; the 200-epoch cap was never
+reached, so these are converged models. The updated v2 dataset improves RMSE
+by 14\% and $\rho$ from 0.163 to 0.190 --- \bad{the gap to the claimed 0.93
+is unchanged in character}. Both runs predate the feature corrections of
+17 August (schema 1); a schema-2 re-run is still required.}
+\end{table}
+
+\begin{table}[h]\centering
+\small
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+\textbf{Held-out ligand} & \textbf{$n$} & \textbf{best ep} & \textbf{RMSE} &
+\textbf{baseline} & \textbf{$\Delta$} & \textbf{$\rho$} \\
+\midrule
+EDC                     & 684 & 46 & 0.562 & 0.865 & \ok{$+0.304$} & 0.060 \\
+EDC\_Oacylisourea       & 684 & 24 & 0.733 & 0.511 & \bad{$-0.222$} & 0.143 \\
+NHS                     & 684 & 73 & 1.208 & 1.361 & \ok{$+0.152$} & 0.329 \\
+NHS\_ester\_intermediate& 684 & 22 & 0.840 & 0.643 & \bad{$-0.197$} & 0.168 \\
+ellagic\_acid           & 692 & 10 & 1.783 & 1.439 & \bad{$-0.344$} & 0.164 \\
+gallic\_acid            & 692 & 21 & 0.535 & 0.444 & \bad{$-0.091$} & 0.126 \\
+pentagalloylglucose     & 692 &  9 & 2.370 & 2.541 & \ok{$+0.171$} & 0.083 \\
+protocatechuic\_acid    & 692 &  2 & 0.400 & 0.428 & \ok{$+0.028$} & 0.197 \\
+pyrogallol              & 692 & 15 & 0.994 & 0.698 & \bad{$-0.297$} & 0.196 \\
+\midrule
+\textbf{Aggregate}      &     &    & \textbf{1.047} & \textbf{0.992} & $-0.055$ & \textbf{0.163} \\
+\bottomrule
+\end{tabular}
+\caption{Per-fold LOLO results. Only 4 of 9 folds beat their own
+global-mean baseline. Pentagalloylglucose --- the headline compound --- is
+the hardest fold by a factor of two.}
+\end{table}
+
+
+\begin{table}[h]\centering
+\small
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+\textbf{Held-out ligand} & \textbf{$n$} & \textbf{RMSE} &
+\textbf{per-box} & \textbf{sd$(y)$} & \textbf{$R^2$} & \textbf{$\rho$} \\
+\midrule
+EDC                     & 684 & 0.722 & 0.882 & 0.282 & \bad{$-5.55$} & 0.064 \\
+EDC\_Oacylisourea       & 684 & 0.631 & 0.422 & 0.455 & \bad{$-0.93$} & 0.140 \\
+NHS                     & 684 & 0.706 & 1.347 & 0.312 & \bad{$-4.11$} & 0.247 \\
+NHS\_ester\_intermediate& 684 & 0.459 & 0.580 & 0.378 & \bad{$-0.48$} & 0.214 \\
+ellagic\_acid           & 708 & 1.429 & 1.324 & 0.707 & \bad{$-3.08$} & 0.172 \\
+gallic\_acid            & 708 & 0.641 & 0.328 & 0.483 & \bad{$-0.76$} & 0.134 \\
+pentagalloylglucose     & 708 & 2.491 & 2.495 & 1.400 & \bad{$-2.17$} & 0.200 \\
+protocatechuic\_acid    & 708 & 0.417 & 0.328 & 0.469 & \ok{$+0.21$}  & 0.229 \\
+pyrogallol              & 708 & 0.632 & 0.709 & 0.435 & \bad{$-1.11$} & 0.309 \\
+\midrule
+\textbf{Aggregate}      &     & \textbf{0.903} & \textbf{0.935} &
+  \textbf{0.547} & \bad{\textbf{$-2.00$}} & \textbf{0.190} \\
+\bottomrule
+\end{tabular}
+\caption{Per-fold LOLO on the v2 dataset, with $R^2$ computed against each
+held-out ligand's own mean. \textbf{$R^2$ is negative in 8 of 9 folds.} The
+model beats the global baseline only because it places each ligand at roughly
+the right overall level --- between-ligand signal, obtainable from molecular
+size alone. \emph{Within} a held-out ligand, which is where the study's actual
+experimental variables live (pH, temperature, docking box), it explains none
+of the variance and is on average $3\times$ worse than predicting that
+ligand's mean.}
+\end{table}
+
+\begin{callout}{Recommended manuscript change}
+Report the two trivial baselines alongside Table~IV, and report $R^2$
+(now computed by \code{Graph\_model/train/metrics.py}).
+A model that does not beat a per-docking-box mean has not demonstrated
+learned chemistry. Report the per-ligand fold table, since a single
+averaged RMSE conceals that the headline ligand is the worst fold.
+\end{callout}
+
+\section{Ligand catalogue corrections}
+
+All values RDKit-verified. The metadata (\code{mw}, \code{n\_ha}) was
+correct; the SMILES strings were not.
+
+\begin{longtable}{@{}p{3.9cm}p{4.5cm}p{4.5cm}@{}}
+\toprule
+\textbf{Ligand} & \textbf{As released} & \textbf{Corrected} \\
+\midrule
+\endhead
+pentagalloylglucose &
+  \bad{6 fragments}, 114 heavy atoms, MW 1609.15 &
+  \ok{1 fragment}, 67 heavy atoms, MW 940.68, $\mathrm{C_{41}H_{32}O_{26}}$ \\
+ellagic acid &
+  \bad{monolactone}, $\mathrm{C_{13}H_{8}O_{6}}$, 19 atoms, MW 260.20 &
+  \ok{dilactone}, $\mathrm{C_{14}H_{6}O_{8}}$, 22 atoms, MW 302.19 \\
+EDC & MW 191.70 ($\mathrm{HCl}$ salt) & 155.24 (free base, matches SMILES) \\
+EDC\_Oacylisourea & \code{n\_ha} 13 & 16 \\
+NHS\_ester\_intermediate & MW 285.22, \code{n\_ha} 10 & 228.25 / 16 \warn{(structure ambiguous)} \\
+\bottomrule
+\caption{The released pentagalloylglucose SMILES was a \code{.}-separated
+string of five free gallic acids plus a partially galloylated ring; the
+galloyl detector counted 9 units against a declared 5.}
+\end{longtable}
+
+\paragraph{Galloyl detection.}
+\code{\_SMARTS\_GALLOYL = "Oc1cc(O)c(O)cc1"} encodes
+1,3,4-trihydroxybenzene, not a 3,4,5-galloyl ring. It matches
+\bad{zero} of the nine ligands, including gallic acid itself. The
+\code{galloyl\_strict} feature is therefore identically zero and its
+weight never contributes; \code{galloyl\_weighted} is carried entirely by
+the catechol and pyrogallol patterns, which both match each galloyl ring
+($1.00 + 0.67 = 1.67$ per ring).
+
+\paragraph{Node feature dimension.}
+Two featurisers exist. \code{graph/level1\_ligand.py} yields
+\textbf{35}-D and is what every model consumes;
+\code{data/features/atom.py} yields 54-D and feeds a code path no model
+reads. The manuscript's 79 and the alternative 74 in docstrings
+correspond to neither.
+
+\section{MMP-1 and the selectivity claim}
+
+\begin{longtable}{@{}p{5.6cm}p{9.4cm}@{}}
+\toprule
+\textbf{Observation} & \textbf{Detail} \\
+\midrule
+\endhead
+Empty receptor graphs &
+  \bad{40/40} (v1) and \bad{120/120} (v2) MMP-1 graphs have 0 residue
+  nodes. Reproduced identically on pristine \code{upstream/main}. \\
+Root cause &
+  The MMP-1 CSV has no \code{box\_center\_x/y/z} or \code{box\_size\_A}
+  columns. \code{hetero\_dataset.py:222} falls back to a
+  20\,\AA{} box at the origin; the protein occupies
+  $z\in[13.45,57.92]$, so the box never intersects it. \\
+Ligand coverage &
+  5 of 9 ligands. The four EDC/NHS species have no MMP-1 data. \\
+Condition coverage &
+  pH 5.5 only, 25\,\textdegree C only --- so pH and temperature inputs
+  are constant and carry no information for MMP-1. \\
+Loss weighting &
+  \code{README} justifies $\times 10$ with ``120 MMP-1 vs $\sim$2,052
+  collagen''. Measured ratio is $120:6{,}156 \approx 1{:}51$. \\
+Box label fidelity &
+  The pose tree contains \textbf{67} distinct MMP-1 boxes collapsed to 8
+  canonical labels; \code{mmp1\_box\_mapping\_to\_canonical8.json}
+  records remapping distances up to \bad{39.43\,\AA{}}. \\
+Receptor ambiguity &
+  Poses exist against \code{966C}, \code{966C\_apo} and \code{1SU3}
+  (different crystal, different frame), but the loader always selects
+  \code{966C}. \\
+\bottomrule
+\end{longtable}
+
+\paragraph{Scope of the impact.}
+Only Option~B reads \code{data['residue']}. Model~D --- the selectivity
+model --- is ligand-only and consumes MMP-1 $\Delta G$ \emph{labels},
+which are real. The empty receptor therefore does not invalidate the CSI
+head directly; the coverage limitations above do.
+
+\paragraph{Recoverability.}
+Box centres can be reconstructed from the 335 released docked poses.
+Validated on collagen (where true centres are known): mean error
+6.9\,\AA{} from a single pose, $\sim$3\,\AA{} after
+averaging the five poses per box. This is defensible imputation if
+disclosed, but the authoritative values should come from the original
+Vina/Vinardo configuration files, which also resolve receptor identity
+and box extent.
+
+\section{Code defects affecting reported numbers}
+
+\begin{longtable}{@{}p{5.2cm}p{9.8cm}@{}}
+\toprule
+\textbf{Defect} & \textbf{Consequence} \\
+\midrule
+\endhead
+Silent batch-failure handling &
+  \code{train\_lolo\_cv} wrapped train/val/test batches in
+  \code{except Exception: continue} with no logging. A runtime
+  \code{ModuleNotFoundError} in \code{option\_a.\_encode\_raw} killed
+  every batch; all 9 folds completed reporting \bad{NaN} as a result. \\
+Misplaced \code{features/} package &
+  On the review branch the package sat at \code{Graph\_model/features/}
+  rather than \code{Graph\_model/data/features/}, making the whole data
+  package unimportable. Restored by upstream \code{69a6c14}. \\
+\code{biopython} absent from requirements &
+  Required by \code{level2\_protein.py}. Without it the builder
+  substitutes a single all-zero residue node --- a by-the-book install
+  gives \emph{every} sample an empty receptor. \\
+Hardcoded absolute data root &
+  \code{REPO\_ROOT} pointed at a single developer's path, and
+  \code{PROCESSED\_DIR.mkdir()} executed at import time. \\
+Missing-target imputation &
+  Absent $\Delta G$ became $0.0$, a $+3.5\sigma$ outlier against a
+  $-3.83 \pm 1.07$ target. \warn{Did not fire on the released data
+  (0 imputed values), so no published number is affected.} \\
+Results overwritten in place &
+  \code{train\_main.py} rewrites \code{Graph\_model/results/} with no
+  warning; a single-model run replaces the A--I comparison file. \\
+Seeding &
+  Only \code{torch.manual\_seed}; \code{random} and \code{numpy} unseeded. \\
+\bottomrule
+\end{longtable}
+
+\section{Statements to revise in the manuscript}
+
+\begin{enumerate}\itemsep2pt
+  \item \textbf{Hardware.} SI states an H100 GPU; the released training
+        logs record \code{device: cpu}.
+  \item \textbf{Loss function.} All four training loops use
+        \code{nn.MSELoss()}. \code{CombinedDockingLoss}
+        (MSE\,+\,ListMLE\,+\,monotonicity\,+\,NLL) is defined and exported
+        but never instantiated, so the ranking and monotonicity terms and
+        the heteroscedastic uncertainty head are untrained. The
+        main-text ``smooth-L1'' description matches neither.
+  \item \textbf{SE(3) equivariance.} Options F and G have no real
+        geometry: EGNN coordinates are a \code{Linear(35$\to$3)} of atom
+        features; DimeNet ``angles'' come from cosine similarity of edge
+        features and ``distances'' from \code{norm(edge\_attr)}. Genuine
+        ETKDG conformers exist in \code{features/conformer\_3d.py} and are
+        imported nowhere.
+  \item \textbf{Protein usage.} Eight of nine models never read the
+        receptor. Describing them as protein--ligand models is not
+        supported by the code.
+  \item \textbf{Binding-site size.} The collagen binding-site PDBs contain
+        3 residues (41 atoms); graphs carry 3 or 6 residue nodes.
+  \item \textbf{Model D checkpoint.} $\text{val\_RMSE} \approx 0.549$ is a
+        single-fold row-level-split value. The per-ligand mean baseline on
+        the same data is $0.589$, so this figure is not evidence of
+        learned structure--activity relationships.
+\end{enumerate}
+
+\section*{Reproduction}
+
+\begin{verbatim}
+export COLLAGEN_DATA_ROOT=/path/to/data
+python -m Graph_model.train_main --model A --lolo-cv --device mps \
+    --max-epochs 200 --batch-size 16 --patience 15 --seed 0 \
+    --force-reload --results-dir results/lolo_A_s0
+pytest tests/ -q            # 52 passed, 1 xfail
+\end{verbatim}
+
+\noindent
+\code{--force-reload} is required: the released bundle ships a cache
+identical to the v1 data, so without it the v2 MMP-1 records are silently
+ignored. Always pass \code{--results-dir}; the default overwrites the
+published artifacts in \code{Graph\_model/results/}.
+
+\end{document}

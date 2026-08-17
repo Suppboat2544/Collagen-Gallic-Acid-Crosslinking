@@ -132,12 +132,8 @@ def pretrain(
     history : dict with 'train_losses', 'val_losses', 'best_epoch'
     """
     if device is None:
-        if torch.backends.mps.is_available():
-            device = torch.device('mps')
-        elif torch.cuda.is_available():
-            device = torch.device('cuda')
-        else:
-            device = torch.device('cpu')
+        from .device import resolve_device
+        device = resolve_device("auto")
 
     logger.info("Pretrain: device=%s, max_epochs=%d, lr=%.1e", device, max_epochs, lr)
 

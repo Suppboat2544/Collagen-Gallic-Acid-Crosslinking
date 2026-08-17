@@ -87,6 +87,33 @@ def preflight(verbose: bool = True) -> int:
     except Exception as exc:
         problems.append(f"Could not import Graph_model.data.config: {exc}")
 
+    # Ligand identity: does the molecule we name match the molecule that was
+    # docked? A mismatch does not stop the run -- the scores are what they are
+    # -- but it must never pass unseen, because it means an affinity is
+    # labelled with the wrong compound.
+    try:
+        from Graph_model.data.provenance import check_structures
+        checks = check_structures()
+        bad = [c for c in checks if c.status == "mismatch"]
+        unavailable = [c for c in checks if c.status in ("missing", "unreadable")]
+        if verbose:
+            n_ok = sum(c.status == "match" for c in checks)
+            print(f"Ligand identity: {n_ok}/{len(checks)} match their docked structure")
+            for c in bad:
+                print(f"  MISMATCH {c.ligand}: catalogue {c.catalogue_formula} "
+                      f"(MW {c.catalogue_mw}) vs docked {c.docked_formula} "
+                      f"(MW {c.docked_mw})")
+            if bad:
+                print("  -> affinities for these ligands belong to a different "
+                      "molecule than their label. Re-dock before reporting them; "
+                      "do not edit the scores.")
+            if unavailable:
+                print(f"  {len(unavailable)} ligand structure(s) not found; "
+                      "identity unverified")
+    except Exception as exc:
+        if verbose:
+            print(f"  warning: ligand identity check skipped ({exc})")
+
     if problems:
         print("\nPreflight FAILED:\n")
         for p in problems:

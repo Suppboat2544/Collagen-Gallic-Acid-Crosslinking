@@ -58,8 +58,11 @@ def main():
     print("\n[2/6] Training Model D...")
     from Graph_model.train.run_training import train_single_model
 
-    device = torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
-    print(f"  Device: {device}")
+    # Was MPS-or-CPU only, so this entry point silently ran on CPU on any
+    # CUDA machine. Now shares the package-wide resolver (CUDA -> MPS -> CPU).
+    from Graph_model.train.device import resolve_device, describe
+    device = resolve_device("auto")
+    print(f"  Device: {device}   ({describe()})")
 
     result = train_single_model(
         model_key="D",

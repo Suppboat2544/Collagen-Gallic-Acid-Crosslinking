@@ -1,0 +1,554 @@
+% =====================================================================
+%  Issue register — Collagen / Gallic-Acid Crosslinking (Graph_model)
+%
+%  Every entry was reproduced by executing the released code on the
+%  released data. Entries marked [pre-existing] were additionally
+%  reproduced on pristine upstream/main @ 5cb24be with no local edits.
+%
+%  Compile: pdflatex issues_by_category.tex
+%  Core LaTeX only - no siunitx / tcolorbox / mhchem.
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.3cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+
+\definecolor{okgreen}{RGB}{0,120,60}
+\definecolor{badred}{RGB}{175,0,30}
+\definecolor{warnamber}{RGB}{180,110,0}
+
+\newcommand{\ok}[1]{\textcolor{okgreen}{#1}}
+\newcommand{\bad}[1]{\textcolor{badred}{#1}}
+\newcommand{\warn}[1]{\textcolor{warnamber}{#1}}
+\newcommand{\code}[1]{\texttt{\small\hyphenchar\font=`\-\relax #1}}
+
+% severity tags
+\newcommand{\SBLOCK}{\bad{\textbf{[BLOCKING]}}}
+\newcommand{\SMAJOR}{\warn{\textbf{[MAJOR]}}}
+\newcommand{\SMINOR}{\textbf{[MINOR]}}
+\newcommand{\SFIXED}{\ok{\textbf{[FIXED]}}}
+\newcommand{\SOPEN}{\bad{\textbf{[OPEN]}}}
+
+\title{Issue Register\\
+       \large Graph\_model --- Programming/Model defects and Biochemical data errors}
+\author{Reproducibility audit, executed against released code and data}
+\date{2026-08-17}
+
+\begin{document}
+\sloppy
+\maketitle
+
+\section*{How to read this}
+
+Issues are split into two registers:
+
+\begin{itemize}\itemsep2pt
+  \item \textbf{Section 1 --- Programming and Model.} Software defects and
+        experimental-design problems. These affect whether a number can be
+        produced or trusted, but do not misdescribe chemistry.
+  \item \textbf{Section 2 --- False biochemical data.} Entries where the
+        stored data does not represent the intended molecule, protein, or
+        physical process. These are wrong \emph{as chemistry}, independent of
+        any code.
+\end{itemize}
+
+Status tags: \SFIXED{} corrected in this branch; \SOPEN{} still live.
+Severity: \SBLOCK{} invalidates results; \SMAJOR{} changes numbers;
+\SMINOR{} correctness/hygiene. \textbf{[pre-existing]} means it was
+reproduced on pristine \code{upstream/main} and was not introduced by
+this audit.
+
+\vspace{4pt}\noindent
+\textbf{Headline:} under leave-one-ligand-out cross-validation on the
+released data, Model~A reaches Spearman $\rho = 0.163$ against a reported
+$0.93$, with RMSE $1.047$ against a global-mean baseline of $0.992$ and a
+per-docking-box baseline of $0.918$.
+
+% =====================================================================
+\section{Programming and Model}
+% =====================================================================
+
+\subsection{P1. Defects that made results impossible or false}
+
+\begin{longtable}{@{}L{0.6cm}L{5.2cm}L{8.6cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Issue} & \textbf{Detail and consequence} \\
+\midrule
+\endhead
+P1.1 & \SBLOCK{} \SFIXED{} Silent NaN training &
+  \code{train\_lolo\_cv} wrapped train, validation \emph{and} test batches in
+  \code{except Exception: continue} with no logging. A runtime error killed
+  every batch; \code{regression\_metrics([],[])} returned NaN; all 9 folds
+  ``completed''. A full LOLO run finished in ${\sim}50$\,s reporting
+  \code{rmse\_mean: nan}. [pre-existing] \\
+P1.2 & \SBLOCK{} \SFIXED{} Every forward pass of Models A--D raised &
+  \code{option\_a.\_encode\_raw} imported \code{ConditionEncoder} from a wrong
+  path \emph{inside} \code{forward()}, so it failed at runtime, not import
+  time. B, C and D reuse \code{\_encode\_raw}. Combined with P1.1 this is why
+  no result could be produced. [pre-existing] \\
+P1.3 & \SBLOCK{} \SFIXED{} Package unimportable &
+  The \code{features/} directory sat at \code{Graph\_model/features/} while
+  every import expected \code{Graph\_model/data/features/}. \code{import
+  Graph\_model.data.config} raised \code{ModuleNotFoundError}. Restored by
+  upstream \code{69a6c14}; the imports were always right, the tree was wrong. \\
+P1.4 & \SMAJOR{} \SFIXED{} \code{biopython} absent from requirements &
+  Required by \code{level2\_protein.py}. Without it the builder catches the
+  \code{ImportError} and substitutes a \emph{single all-zero residue node}.
+  A by-the-book install gives every sample an empty receptor. Verified:
+  \code{residue.x} is \code{[1,30]} zeros without it, \code{[30,30]} with. \\
+P1.5 & \SMAJOR{} \SOPEN{} Published metrics mix two target quantities &
+  Training logs record \code{n\_train}\,$=9517$, \code{n\_val}\,$=1679$
+  (total $11{,}196 = 6{,}196$ anchor $+\,5{,}000$ PDBbind; \code{--max-transfer}
+  defaults to 5000). About 45\,\% of the validation set is PDBbind, so the
+  reported kcal/mol RMSE averages Vinardo docking scores with PDBbind
+  experimental affinities. \\
+P1.6 & \SMAJOR{} \SOPEN{} Documented loss never executed &
+  All four training loops use \code{nn.MSELoss()}.
+  \code{CombinedDockingLoss} (MSE\,+\,ListMLE\,+\,monotonicity\,+\,NLL) is
+  defined and exported but \emph{instantiated nowhere}, so the ranking and
+  monotonicity terms and the heteroscedastic uncertainty head are untrained.
+  The main-text ``smooth-L1'' description matches neither. \\
+P1.7 & \SMAJOR{} \SFIXED{} Results overwritten in place &
+  \code{train\_main.py} rewrites \code{Graph\_model/results/} with no warning
+  and no merge. A single-model run replaces the A--I comparison file,
+  deleting the other eight entries and the Table~IV provenance block. The
+  command in the project README has this property. \\
+P1.8 & \SMAJOR{} \SOPEN{} Shipped cache is stale &
+  The v2 bundle's \code{.pkl} is byte-identical to v1
+  (md5 \code{a6e4b35d...}). Since \code{use\_cache=True} is the default,
+  training silently uses the \emph{old} 40-record MMP-1 data unless
+  \code{--force-reload} is passed. \\
+\bottomrule
+\end{longtable}
+
+\subsection{P2. Reproducibility and environment}
+
+\begin{longtable}{@{}L{0.6cm}L{5.2cm}L{8.6cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Issue} & \textbf{Detail and consequence} \\
+\midrule
+\endhead
+P2.1 & \SMAJOR{} \SFIXED{} Hardcoded absolute data root &
+  \code{REPO\_ROOT = Path("/Users/suppboat/Jupyter\_Dock")}, and
+  \code{PROCESSED\_DIR.mkdir()} executed at \emph{import} time, creating
+  directories on any machine that imported the package. Now
+  \code{\$COLLAGEN\_DATA\_ROOT} with a repo-relative fallback. \\
+P2.2 & \SMINOR{} \SFIXED{} Circular import &
+  The cycle was \code{features} $\to$ \code{conditions} $\to$
+  \code{data.config} $\to$ \code{data/\_\_init\_\_} $\to$ \code{dataset}
+  $\to$ \code{features}. Import success depended on which package was
+  imported first. Fixed with a
+  lazy (PEP 562) package \code{\_\_init\_\_}. \\
+P2.3 & \SMAJOR{} \SFIXED{} Incomplete seeding &
+  Only \code{torch.manual\_seed}; \code{random}, \code{numpy},
+  \code{cuda.manual\_seed\_all} and cuDNN determinism were unseeded, so two
+  runs with the same \code{--seed} were not the same run. \\
+P2.4 & \SMAJOR{} \SFIXED{} Five disagreeing device resolvers &
+  \code{run\_model\_d\_interpret.py} had \emph{no CUDA branch} and silently
+  used CPU on NVIDIA hardware; \code{hpo.py} cleared the allocator cache only
+  on CUDA, so MPS sweeps leaked memory; \code{train\_main.resolve\_device}
+  accepted any string, so \code{--device cuda} on a Mac failed later with an
+  unrelated error. Unified in \code{Graph\_model/train/device.py}. \\
+P2.5 & \SMINOR{} \SOPEN{} Hardware claim &
+  SI states an H100 GPU; the released training logs record
+  \code{device: cpu}. \\
+P2.6 & \SMAJOR{} \SFIXED{} No entry point, no tests &
+  Zero \code{\_\_main\_\_} guards, zero \code{argparse}, a 1-byte README, and
+  five 1--5 byte placeholder files named \code{test}. \code{pytest} appeared
+  zero times. Upstream later added \code{train\_main.py}; this branch adds
+  \code{scripts/run\_lolo.py} and a 70-test suite. \\
+P2.7 & \SMINOR{} \SOPEN{} Dependency pinning &
+  All requirements are \code{>=} with no lockfile. \\
+\bottomrule
+\end{longtable}
+
+\subsection{P3. Data-handling defects}
+
+\begin{longtable}{@{}L{0.6cm}L{5.2cm}L{8.6cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Issue} & \textbf{Detail and consequence} \\
+\midrule
+\endhead
+P3.1 & \SMAJOR{} \SFIXED{} Missing targets imputed as \code{0.0} &
+  Against a $-3.83 \pm 1.07$ kcal/mol distribution this is a fabricated
+  $+3.5\sigma$ outlier. \ok{Did not fire on the released data (0 imputed
+  values), so no published number is affected.} Now drops the row. \\
+P3.2 & \SMAJOR{} \SFIXED{} Silent row loss &
+  \code{hetero\_dataset} counted build failures behind five \code{debug}
+  messages. Rows could vanish without trace. Now logs every failure with its
+  reason and refuses to build if $>5\,\%$ of rows drop. \\
+P3.3 & \SMINOR{} \SOPEN{} Dead dataset path &
+  \code{CollagenDockingDataset} emits a homogeneous 54-D \code{Data} object;
+  every model indexes \code{data['ligand']}, which it never sets. It cannot
+  feed any model. \\
+P3.4 & \SMINOR{} \SFIXED{} Feature-dimension confusion &
+  Five different values appeared for ``the node feature dimension'': 35, 54,
+  74, 79 and a docstring claiming 32/33. Only two featurisers exist:
+  \textbf{35}-D (\code{graph/level1\_ligand.py}, consumed by every model) and
+  54-D (\code{data/features/atom.py}, dead path). Now asserted at runtime. \\
+\bottomrule
+\end{longtable}
+
+\subsection{P4. Model and experimental design}
+
+\begin{longtable}{@{}L{0.6cm}L{5.2cm}L{8.6cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Issue} & \textbf{Detail and consequence} \\
+\midrule
+\endhead
+P4.1 & \SBLOCK{} \SOPEN{} Rank correlation does not reproduce &
+  Converged LOLO-CV, anchor-only, seed 0: Spearman $\rho = 0.163 \pm 0.074$
+  against Table~IV's $0.93$. Folds early-stopped at epochs 2--73 (200-epoch
+  cap never reached), and raising the budget from 10 to 200 epochs changed
+  $\rho$ by $-0.004$, so undertraining does not explain it. \\
+P4.2 & \SBLOCK{} \SOPEN{} No baselines reported &
+  Measured LOLO RMSE $1.047$ versus a global-mean baseline of $0.992$ and a
+  per-docking-box mean of $0.918$. Only 4 of 9 folds beat their own baseline.
+  A model that cannot beat a per-box mean has not demonstrated learned
+  chemistry. \\
+P4.3 & \SMAJOR{} \SOPEN{} Signature of overfitting &
+  Training longer made generalisation \emph{worse}: LOLO RMSE rose from
+  $0.938$ (10-epoch cap) to $1.047$ (converged) while $\rho$ stayed flat.
+  Fold validation RMSE (held-in ligands) sits at 0.52--0.70 against test RMSE
+  (held-out ligand) of 0.40--2.37. \\
+P4.4 & \SMAJOR{} \SOPEN{} Eight of nine models never read the protein &
+  Only Option~B references \code{data['residue']} / \code{interacts}. A, C,
+  D, E, F, G, H, I consume atom features, bond edges and a condition vector
+  only. They are ligand-only regressors over nine unique molecules. \\
+P4.5 & \SMAJOR{} \SOPEN{} Models F and G have no real geometry &
+  EGNN coordinates are \code{Linear(35$\to$3)} of atom features; DimeNet
+  ``angles'' come from \code{cosine\_similarity} of edge features and
+  ``distances'' from \code{norm(edge\_attr)}. Genuine RDKit ETKDG conformers
+  exist in \code{features/conformer\_3d.py} and are imported nowhere. Neither
+  model is SE(3)-equivariant as built. \\
+P4.6 & \SMAJOR{} \SOPEN{} Leaky split reported &
+  \code{StratifiedSplitter} (row-level 70/15/15) is imported by nothing, yet
+  the ``best epoch'' and validation-RMSE columns are row-level artifacts.
+  With nine molecules a row-level split leaks molecular identity --- as
+  \code{lolo\_cv.py} states in its own docstring. \\
+P4.7 & \SMAJOR{} \SOPEN{} Model D checkpoint misread &
+  $\text{val\_RMSE}\approx 0.549$ is a single-fold row-level value. The
+  per-ligand mean baseline on the same data is $0.589$, so this figure is
+  consistent with memorising each ligand's mean. \\
+P4.8 & \SMINOR{} \SOPEN{} Headline ligand is the worst fold &
+  Pentagalloylglucose: test RMSE $2.370$, $\rho = 0.083$ --- more than twice
+  the next-worst fold. A single averaged RMSE conceals this. \\
+P4.9 & \SMINOR{} \SOPEN{} No $R^2$, no reference model &
+  \code{metrics.py} computes RMSE/MAE/Pearson/Spearman only. \code{r2\_score},
+  \code{sklearn} and \code{xgboost} appear zero times despite being declared
+  dependencies. No baseline of any kind is implemented. \\
+P4.10 & \SMINOR{} \SOPEN{} Unexercised modules &
+  \code{maml.py}, \code{contrastive.py} and \code{hpo.py} are reached by no
+  entry point. If Optuna HPO selected on the validation split, the reported
+  validation metrics are optimistically biased. \\
+\bottomrule
+\end{longtable}
+
+% =====================================================================
+\section{False biochemical data}
+% =====================================================================
+
+These entries are wrong as \emph{chemistry or structural biology}: the
+stored value does not represent the intended molecule, protein, or physical
+process. All were verified with RDKit or Bio.PDB against the released files.
+
+\subsection{B1. Ligand structures}
+
+\begin{longtable}{@{}L{0.6cm}L{4.0cm}L{4.6cm}L{5.1cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Entry} & \textbf{As released} & \textbf{Correct} \\
+\midrule
+\endhead
+B1.1 & \SBLOCK{} \SFIXED{} Pentagalloylglucose &
+  \bad{6 disconnected fragments}; 114 heavy atoms; MW 1609.15;
+  $\mathrm{C_{68}H_{56}O_{46}}$. A \code{.}-separated string of five free
+  gallic acids plus a partially galloylated ring. &
+  \ok{1 fragment}; 67 heavy atoms; MW 940.68;
+  $\mathrm{C_{41}H_{32}O_{26}}$. The headline ligand was fed to every model
+  as six separate molecules, ${\sim}1.7\times$ too large. \\
+B1.2 & \SMAJOR{} \SFIXED{} \code{PGG\_SMILES\_RDKIT} &
+  A cyclopentane pentagallate: no pyranose ring oxygen, no C6
+  hydroxymethyl. $\mathrm{C_{40}H_{30}O_{25}}$, MW 910.66, 65 atoms. &
+  Connected \emph{but still the wrong molecule}. Read by nothing
+  (\code{smiles\_rdkit} had zero references), so adopting it as the ``fix''
+  would have passed a fragment-count test while remaining wrong. \\
+B1.3 & \SMAJOR{} \SFIXED{} Ellagic acid &
+  \bad{Monolactone}: $\mathrm{C_{13}H_{8}O_{6}}$, 19 heavy atoms, MW 260.20
+  --- missing one of the two lactone bridges. &
+  \ok{Dilactone}: $\mathrm{C_{14}H_{6}O_{8}}$, 22 heavy atoms, MW 302.19.
+  The entry's own comment said ``dilactone'' and its \code{mw}/\code{n\_ha}
+  described the correct molecule. \\
+B1.4 & \SMINOR{} \SFIXED{} EDC &
+  MW 191.70 --- the \emph{hydrochloride salt} --- while the SMILES is the
+  free base. & 155.24 ($\mathrm{C_8H_{17}N_3}$), matching the SMILES. \\
+B1.5 & \SMINOR{} \SFIXED{} EDC O-acylisourea &
+  \code{n\_ha} 13. & 16. (Also a propionic-acid stand-in, not the gallic-acid
+  adduct.) \\
+B1.6 & \SMAJOR{} \SFIXED{} NHS ester intermediate &
+  MW 285.22 and \code{n\_ha} 10 --- matching neither each other nor the
+  SMILES ($\mathrm{C_{10}H_{16}N_2O_4}$, MW 228.25, 16 atoms). &
+  Resolved by reading the shipped docking inputs. The EDC/NHS series is built
+  on \emph{propionic acid} as the carboxylic-acid stand-in (the catalogue and
+  the structure file agree on the O-propanoylisourea), so the consistent
+  NHS-stage species is \ok{N-succinimidyl propionate},
+  $\mathrm{C_7H_9NO_4}$, MW 171.15, 12 atoms. Catalogue now
+  \ok{9/9 self-consistent}. \\
+\bottomrule
+\end{longtable}
+
+\subsection{B2. Chemical feature detection}
+
+\begin{longtable}{@{}L{0.6cm}L{5.2cm}L{8.6cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Issue} & \textbf{Detail} \\
+\midrule
+\endhead
+B2.1 & \SMAJOR{} \SFIXED{} Galloyl SMARTS matched nothing &
+  \code{\_SMARTS\_GALLOYL = "Oc1cc(O)c(O)cc1"} encodes
+  1,3,4-trihydroxybenzene (hydroxyquinol), not a 3,4,5-galloyl ring: the
+  hydroxyls are not three-adjacent. \code{galloyl\_strict} is \bad{0 for all
+  nine ligands, gallic acid included}, so the feature the mechanism rests on
+  never fires. Correct pattern:
+  \code{[OX2H]c1cc(cc([OX2H])c1[OX2H])[CX3]=[OX1]} --- a trihydroxyphenyl
+  ring bearing an acyl carbon, i.e.\ 3,4,5-trihydroxybenzoyl. Now
+  \ok{gallic acid 1, PGG 5, pyrogallol 0} (no acyl group, so not a galloyl
+  unit). The strict \code{xfail} was removed after it XPASSed. \\
+B2.2 & \SMINOR{} \SFIXED{} Galloyl weight double-counted &
+  Because B2.1 never fired, \code{galloyl\_weighted} was carried entirely by
+  the catechol and pyrogallol patterns, which \emph{both} match each galloyl
+  ring: $1.00 + 0.67 = 1.67$ per ring (gallic acid $\to 1.67$, PGG
+  $\to 8.35$). The root cause was counting per SMARTS \emph{hit} and
+  subtracting (\code{ca - g - py}); a benzene-1,2,3-triol yields \emph{two}
+  catechol hits, so one spurious catechol survived on every trihydroxy ring.
+  Counting is now done at \ok{ring level with disjoint classes}: gallic acid
+  1.00, pyrogallol 1.00, protocatechuic acid 0.67, ellagic acid 1.34,
+  PGG 5.00 --- all matching reference chemistry. \\
+B2.4 & \SMAJOR{} \SFIXED{} Phenolic OH over-counted &
+  \code{total\_aromatic\_oh} accepted \emph{any} oxygen of degree 1--2 bonded
+  to an aromatic carbon, with no hydrogen requirement. RDKit perceives
+  ellagic acid's fused lactone rings as aromatic, so its two ester oxygens
+  and two lactone carbonyls were scored as phenolic hydroxyls: \bad{8
+  against 4 actual}. Now requires a hydroxyl hydrogen. All nine ligands match
+  reference values (gallic acid 3, pyrogallol 3, protocatechuic acid 2,
+  ellagic acid 4, PGG 15). \\
+B2.3 & \SMINOR{} \SFIXED{} Fragment count disagreed with catalogue &
+  With the released PGG SMILES the detector found \bad{9} galloyl units
+  against a declared 5, because the five free gallic acids were counted
+  separately. Now 5. \\
+\bottomrule
+\end{longtable}
+
+\subsection{B3. Protonation physics}
+
+\begin{longtable}{@{}L{0.6cm}L{5.2cm}L{8.6cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Issue} & \textbf{Detail} \\
+\midrule
+\endhead
+B3.1 & \SMAJOR{} \SFIXED{} pH encoding violated Henderson--Hasselbalch &
+  \code{PROPKA\_PROTONATION} hardcodes $f = \{5.0{:}\,0.85,\ 5.5{:}\,0.15,\
+  7.0{:}\,0.02\}$. No single p$K_a$ produces an $0.85 \to 0.15$ drop across
+  0.5 pH units: fitting $f=0.85$ at pH 5.0 implies p$K_a = 5.75$, which
+  predicts $0.64$ at pH 5.5 and $0.05$ at pH 7.0. The drop is
+  thermodynamically impossible for one titratable site --- over half a pH
+  unit, Henderson--Hasselbalch bounds any single site to at most
+  $0.76 \to 0.24$, and only when centred exactly on its p$K_a$.
+  The fractions are now \ok{derived} from one p$K_a$ via
+  $f = 1/(1 + 10^{\,\mathrm{pH} - \mathrm{p}K_a})$, giving
+  $\{5.0{:}\,0.1051,\ 5.5{:}\,0.0358,\ 7.0{:}\,0.0012\}$, with
+  $\mathrm{p}K_a = 4.07$ for GLU (Olsson \emph{et al.}, \emph{JCTC} 7(2):525,
+  2011 --- the reference already used elsewhere in the codebase). A test
+  asserts the table equals the formula, so a hand-typed value cannot
+  return. \\
+B3.2 & \SMAJOR{} \SFIXED{} Two contradictory pH models &
+  \code{graph/residue\_data.py} already implemented Henderson--Hasselbalch
+  correctly, but the \emph{incorrect} table was the one reaching the network.
+  There is now \ok{one pH model}: \code{config.protonation\_fraction} and
+  \code{residue\_data.protonation\_fraction} are asserted equal for GLU at
+  every pH, and \code{GLU\_PKA} is tied to the same referenced p$K_a$ table.
+  Off-study pH values now evaluate the titration curve instead of snapping to
+  the nearest tabulated point, which had made the feature a step function
+  where the physics is smooth. \emph{Caveat recorded in the code}: the
+  corrected fractions span 0.001--0.105, ${\sim}8\times$ narrower than the
+  old (wrong) 0.02--0.85, so the encoding is now right but poorly conditioned
+  as a network input; the principled reparameterisation is the HH exponent
+  $(\mathrm{p}K_a - \mathrm{pH})$, which is a \emph{modelling} change and was
+  therefore not applied. \\
+\bottomrule
+\end{longtable}
+
+\subsection{B4. Receptor structures and docking boxes}
+
+\begin{longtable}{@{}L{0.6cm}L{5.2cm}L{8.6cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Issue} & \textbf{Detail} \\
+\midrule
+\endhead
+B4.1 & \SBLOCK{} \SOPEN{} Every MMP-1 record has an empty receptor &
+  \bad{40/40} (v1) and \bad{120/120} (v2) MMP-1 graphs have \emph{zero}
+  residue nodes. Reproduced identically on pristine \code{upstream/main}, and
+  present in the authors' own shipped cache. [pre-existing] \\
+B4.2 & \SBLOCK{} \SOPEN{} Root cause: missing box geometry &
+  The MMP-1 CSV has no \code{box\_center\_x/y/z} or \code{box\_size\_A}
+  columns (the collagen CSV does). \code{hetero\_dataset.py:222} falls back
+  to a 20\,\AA{} box at the \emph{origin}; the MMP-1 protein occupies
+  $z \in [13.45,\,57.92]$, so the box never intersects the structure.
+  Reconstructed true centres lie a mean of 65.5\,\AA{} from the origin. \\
+B4.3 & \SMAJOR{} \SOPEN{} Box labels are lossy &
+  The pose tree contains \textbf{67} distinct MMP-1 boxes collapsed to 8
+  canonical labels. \code{mmp1\_box\_mapping\_to\_canonical8.json} records
+  remapping distances of \bad{20.79, 32.77 and 39.43\,\AA}: a row labelled
+  \code{ASP\_GLU\_cluster1} was mapped to \code{LYS\_cluster42}, a different
+  site 20.8\,\AA{} away. \\
+B4.4 & \SMAJOR{} \SOPEN{} Receptor identity is unrecorded &
+  Poses exist against \code{966C} (296 res), \code{966C\_apo} (157 res) and
+  \code{1SU3} (1225 res, a different crystal in a different coordinate
+  frame). \code{level2\_protein.py} always selects \code{966C}, so
+  \code{1SU3} coordinates would be interpreted in the wrong frame. No CSV
+  column identifies which receptor a row used. \\
+B4.5 & \SMAJOR{} \SOPEN{} MMP-1 coverage cannot support a selectivity claim &
+  5 of 9 ligands (no EDC/NHS species), a \emph{single} pH (5.5) and a
+  \emph{single} temperature (25\,\textdegree C) --- so the pH and temperature
+  inputs are constant and carry no information for MMP-1. Under LOLO-CV,
+  4 of 9 folds contain zero MMP-1 test records. \\
+B4.6 & \SMINOR{} \SOPEN{} Documented MMP-1 counts are wrong &
+  \code{README} justifies Model~D's $\times 10$ loss weight with ``120 MMP-1
+  vs $\sim$2{,}052 collagen''. Measured: 40 (v1) or 120 (v2) versus
+  \textbf{6{,}156} collagen --- a ratio of $1{:}154$ or $1{:}51$, not
+  $1{:}17$. \\
+B4.7 & \SMINOR{} \SOPEN{} Collagen binding sites are pre-cropped &
+  \code{pig\_collagen\_I\_alpha2\_\allowbreak pH5.5\_H\_fix\_\allowbreak bindingsite\_clean.pdb}
+  contains \textbf{3 residues / 41 atoms}. Collagen graphs therefore carry
+  only 3 or 6 residue nodes, so Option~B's cross-attention attends over 3--6
+  residues in total. \\
+\bottomrule
+\end{longtable}
+
+\subsection{B6. Ligand identity: the docked molecule is not always the named one}
+
+\emph{Found 2026-08-17.} Nothing in the pipeline ever compared the molecule
+named in the catalogue against the molecule the docking campaign actually read
+from disk. Reading
+\code{<data\_root>/Phukhao/collagen\_gallic\_results/*.sdf} and the 335
+released poses shows \bad{three of nine ligands were docked as a different
+compound}. Identical in the v1 and v2 Drive snapshots, so this is not a
+regression introduced by the dataset update.
+
+\begin{longtable}{@{}L{0.6cm}L{3.4cm}L{5.0cm}L{4.9cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Ligand} & \textbf{Named (catalogue)} & \textbf{Actually docked} \\
+\midrule
+\endhead
+B6.1 & \SBLOCK{} \SOPEN{} Pentagalloylglucose &
+  $\mathrm{C_{41}H_{32}O_{26}}$, MW 940.68, 67 heavy atoms,
+  \textbf{5 galloyl units}. &
+  The input \code{.sdf} holds \bad{4 disconnected fragments}
+  ($\mathrm{C_{48}H_{42}O_{33}}$): a tri-\emph{O}-galloylglucose plus three
+  loose gallic acids. Docking kept only the largest, so every released pose is
+  \bad{tri-\emph{O}-galloylglucose}, $\mathrm{C_{27}H_{24}O_{18}}$, MW 636.47,
+  45 heavy atoms, \textbf{3 galloyl units}. Confirmed on all 68 PGG poses. \\
+B6.2 & \SMAJOR{} \SOPEN{} NHS &
+  N-hydroxysuccinimide, $\mathrm{C_4H_5NO_3}$, MW 115.09 (CID 6467). &
+  $\mathrm{C_3H_3NO_3}$, MW 101.06 --- \bad{one $\mathrm{CH_2}$ short}. \\
+B6.3 & \SMAJOR{} \SOPEN{} NHS ester intermediate &
+  N-succinimidyl propionate, $\mathrm{C_7H_9NO_4}$, MW 171.15, five-membered
+  imide ring. &
+  $\mathrm{C_6H_7NO_4}$, MW 157.12, with a \bad{four-membered ring} ---
+  again exactly one $\mathrm{CH_2}$ short. \\
+\bottomrule
+\end{longtable}
+
+B6.2 and B6.3 are \emph{one} defect, not two: a succinimide ring has four ring
+carbons and both structures were built with three. The deficiency is exactly
+$\mathrm{CH_2}$ (14.03\,Da) in each case, so a single upstream
+structure-building error propagated to every NHS-containing species.
+
+\paragraph{Consequence.} A binding affinity is only meaningful beside the
+structure it was computed for. Every $\Delta G$ labelled
+\emph{pentagalloylglucose} belongs to a molecule carrying three of the five
+galloyl groups whose count is the paper's proposed mechanism --- and PGG is the
+headline ligand. The remaining six ligands (gallic acid, EDC, EDC
+\emph{O}-acylisourea, protocatechuic acid, pyrogallol, ellagic acid)
+\ok{match exactly} and are unaffected.
+
+\paragraph{Remedy.} Re-dock the three structures. The scores cannot be
+corrected by editing the catalogue, and were left untouched. To stop this
+recurring, \code{Graph\_model/data/provenance.py} now compares every catalogue
+entry against its docking input by molecular formula and InChIKey skeleton;
+it runs in the training preflight, is recorded in each results file under
+\code{provenance.ligand\_identity}, and is asserted by
+\code{tests/test\_provenance.py}. A mismatch outside the three known ones
+fails the suite.
+
+\subsection{B5. Recoverability}
+
+Box centres for MMP-1 \emph{can} be reconstructed from the 335 released
+docked poses: a pose can only be generated inside its search box, so the poses
+are physical evidence of where the box was.
+\code{scripts/reconstruct\_mmp1\_boxes.py} implements this and was run.
+
+\begin{itemize}\itemsep1pt
+  \item \textbf{Validated on collagen}, where the true centres are recorded:
+        31 boxes, \ok{mean error 4.94\,\AA}, median 4.78\,\AA{}, range
+        1.39--7.94\,\AA{}. Against a 20\,\AA{} box this recovers the right
+        binding \emph{region}, not the original box.
+  \item \textbf{Coverage}: \ok{67 of 67} (receptor, box) pairs in the CSV
+        recovered --- 45 for \code{porcine\_MMP1\_1SU3}, 8 for
+        \code{porcine\_MMP1\_966C}, 14 for \code{porcine\_MMP1\_966C\_apo}.
+  \item \textbf{Occupancy}, the test that matters. The defect is not that the
+        centre is missing but that the resulting box is empty. At the origin
+        (current behaviour) all three receptors give \bad{0 atoms}. The
+        reconstructed centres give a median of \ok{148--220 receptor atoms}
+        per box, with \ok{61 of 67} boxes non-empty.
+  \item \textbf{Six boxes remain unusable} --- \code{1SU3/GLU\_cluster1},
+        \code{1SU3/GLU\_cluster15}, and four on \code{966C\_apo}. Their poses
+        sit off the receptor surface, so the centroid is not a box centre.
+        These need the original configuration files.
+  \item \textbf{Not recoverable at all}: the box \emph{size}. Pose extent is a
+        lower bound, not a measurement, and is emitted under a name that says
+        so.
+\end{itemize}
+
+Output goes to a \emph{sidecar} CSV carrying \code{method} and
+\code{is\_measured=false} columns. The shipped CSVs are not modified and the
+reconstruction is \textbf{not} wired into training: reconstructed geometry is
+not measured geometry, and whether to use it is the authors' call. The
+authoritative values should still come from the original Vina/Vinardo
+configuration files, which additionally resolve B4.3 (which box) and B4.4
+(which receptor). Synthetic or placeholder coordinates must not be
+substituted: an invented centre does not leave the receptor absent, it puts
+the model on the \emph{wrong} residues while appearing to work.
+
+% =====================================================================
+\section{Priority}
+% =====================================================================
+
+\begin{enumerate}\itemsep2pt
+  \item \textbf{P4.1, P4.2} --- reconcile the reported $\rho = 0.93$ with the
+        measured $0.163$, and publish both baselines. Nothing else in the
+        manuscript matters until this is settled.
+  \item \textbf{P1.5} --- state whether Table~IV is anchor-only; if not, the
+        kcal/mol figures are not collagen $\Delta G$ metrics.
+  \item \textbf{B6.1--B6.3} --- re-dock pentagalloylglucose, NHS and the NHS
+        ester intermediate. Until then no affinity for those three ligands can
+        be reported under those names, and the galloyl-count mechanism has no
+        support from the PGG data.
+  \item \textbf{B3.1, B2.1} --- \emph{done}: the pH table and the galloyl
+        SMARTS are both corrected. Every feature vector changed, so all
+        feature-dependent numbers need one re-run under feature schema~2.
+  \item \textbf{B4.2} --- obtain the Vina configs; until then no MMP-1
+        structural claim is supportable. Reconstructed centres (B5) cover 61
+        of 67 boxes at ${\sim}5$\,\AA{} and are available as a disclosed
+        sidecar in the meantime.
+  \item \textbf{P1.6, P4.4, P4.5} --- correct the manuscript's descriptions of
+        the loss, protein usage, and SE(3) equivariance to match the code.
+\end{enumerate}
+
+\end{document}

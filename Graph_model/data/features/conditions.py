@@ -3,7 +3,7 @@ Graph_model.data.features.conditions
 ======================================
 Condition vector encoding for the three physicochemical axes:
 
-    pH          → PropKa-derived neutral-GLU protonation fraction
+    pH          → Henderson-Hasselbalch neutral-GLU protonation fraction
     Temperature → normalised (T − 4) / 33   ∈ [0, 1]
     Box type    → integer index for nn.Embedding(8, 16)
     Receptor    → 0 (collagen) or 1 (MMP-1)
@@ -19,7 +19,7 @@ Usage
 >>> enc = ConditionEncoder()
 >>> vec = enc.encode(ph=5.0, temp_C=25, box_label="GLU_cluster22", receptor="collagen")
 >>> vec
-array([0.85  , 0.636 , 0.    , 0.    ], dtype=float32)
+array([0.1051, 0.636 , 0.    , 0.    ], dtype=float32)
 
 >>> idx = enc.parse_box_type("ASP_GLU_cluster14")
 >>> idx
@@ -28,6 +28,7 @@ array([0.85  , 0.636 , 0.    , 0.    ], dtype=float32)
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Union
 
@@ -37,6 +38,8 @@ import numpy as np
 # Graph_model.data.features.conditions, so `..config` resolves correctly.
 from ..config import (
     PROPKA_PROTONATION,
+    GLU_PKA,
+    protonation_fraction,
     BOX_TYPE_VOCAB,
     PH_VALUES,
     TEMP_VALUES,
@@ -112,11 +115,27 @@ class ConditionEncoder:
 
     def _encode_ph(self, ph: float) -> float:
         """
-        Map pH → neutral-GLU protonation fraction using PropKa values.
+        Map pH → fraction of the GLU carboxylate in its protonated (neutral)
+        form, via Henderson-Hasselbalch against a single pKa.
 
-        pH 5.0 → 0.85 (mostly protonated / neutral)
-        pH 5.5 → 0.15 (mostly deprotonated)
-        pH 7.0 → 0.02 (fully deprotonated)
+            pH 5.0 → 0.1051
+            pH 5.5 → 0.0358
+            pH 7.0 → 0.0012
+
+        Corrected 2026-08: was a hardcoded {0.85, 0.15, 0.02} table that no
+        single pKa can produce (see Graph_model/data/config.py). Off-study pH
+        values now interpolate along the titration curve instead of snapping to
+        the nearest tabulated point, which previously made pH 6.4 and pH 5.6
+        both encode as 0.02 and 0.15 respectively -- a discontinuity of the
+        feature where the physics is smooth.
+
+        Scaling caveat: the corrected fractions span 0.001-0.105, a range ~8x
+        narrower than the old (incorrect) 0.02-0.85. The encoding is now right
+        but poorly conditioned as a network input next to features on [0, 1].
+        If pH sensitivity matters downstream, the principled reparameterisation
+        is the HH exponent itself, (pKa - pH), which is linear in pH and
+        well-scaled. That is a modelling change, not a correctness fix, so it is
+        NOT applied here.
         """
         if ph in PROPKA_PROTONATION:
             return PROPKA_PROTONATION[ph]
@@ -124,9 +143,9 @@ class ConditionEncoder:
             raise ValueError(
                 f"Unknown pH {ph}. Known values: {list(PROPKA_PROTONATION)}"
             )
-        # nearest-neighbour fallback
-        closest = min(PROPKA_PROTONATION, key=lambda x: abs(x - ph))
-        return PROPKA_PROTONATION[closest]
+        # Off-study pH: evaluate the titration curve rather than snapping to a
+        # tabulated neighbour.
+        return round(protonation_fraction(float(ph)), 4)
 
     # ── Temperature encoding ─────────────────────────────────────────────────
 
@@ -200,9 +219,24 @@ class ConditionEncoder:
 
     @staticmethod
     def decode_ph(ph_enc: float) -> float:
-        """Reverse lookup: protonation fraction → nearest pH value."""
-        best = min(PROPKA_PROTONATION, key=lambda x: abs(PROPKA_PROTONATION[x] - ph_enc))
-        return best
+        """
+        Reverse the encoding: protonation fraction → pH.
+
+        Inverting Henderson-Hasselbalch exactly:
+
+            pH = pKa - log10(f / (1 - f))
+
+        Previously this snapped to the nearest tabulated pH by scanning the
+        dict, which round-tripped only the three study values and silently
+        returned one of them for any other input.
+        """
+        f = float(ph_enc)
+        if not 0.0 < f < 1.0:
+            # Outside the open interval the inverse is undefined; fall back to
+            # the nearest tabulated pH rather than raising on a display path.
+            return min(PROPKA_PROTONATION,
+                       key=lambda p: abs(PROPKA_PROTONATION[p] - f))
+        return round(GLU_PKA - math.log10(f / (1.0 - f)), 4)
 
     @staticmethod
     def decode_temp(temp_enc: float) -> float:

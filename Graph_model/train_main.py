@@ -106,9 +106,11 @@ Model keys:
 
     # Device
     p.add_argument(
-        "--device", type=str, default=None,
-        choices=["cpu", "mps", "cuda"],
-        help="Force device. Default: auto-detect (MPS on Apple Silicon).",
+        "--device", type=str, default="auto",
+        choices=["auto", "cpu", "mps", "cuda"],
+        help="Compute device. 'auto' picks CUDA, else MPS, else CPU. "
+             "An explicit choice that is unavailable is an error, not a "
+             "silent fallback to CPU.",
     )
 
     # Logging
@@ -171,8 +173,36 @@ def load_dataset(args: argparse.Namespace):
             transfer_ds = _load_pdbbind_transfer(max_entries=max_t)
             if transfer_ds is not None and len(transfer_ds) > 0:
                 combined = _CombinedDataset(ds, transfer_ds)
+                n_a, n_t = len(ds), len(transfer_ds)
                 print(f"\nCombined: {len(combined)} total "
-                      f"({len(ds)} anchor + {len(transfer_ds)} PDBbind transfer)")
+                      f"({n_a} anchor + {n_t} PDBbind transfer)")
+                # The two halves are not the same physical quantity. Anchor
+                # rows carry Vinardo docking SCORES; PDBbind rows carry
+                # EXPERIMENTAL binding affinities. Both are written to `y` in
+                # kcal/mol and pooled into one RMSE/rho, which makes the
+                # headline metric an average over two different measurands.
+                # Nothing warned about this, and the released numbers were
+                # computed on such a mixture (6,196 + 5,000 = 11,196 rows).
+                print(
+                    "\n"
+                    "  ****************************************************************\n"
+                    "  *  WARNING: MIXED TARGET QUANTITIES                             *\n"
+                    "  ****************************************************************\n"
+                    f"  {n_a} anchor rows hold Vinardo docking SCORES.\n"
+                    f"  {n_t} PDBbind rows hold EXPERIMENTAL binding affinities.\n"
+                    "  These are different physical quantities sharing a unit.\n"
+                    "  Any RMSE, r or rho computed over the pool is an average\n"
+                    "  across both, and is NOT comparable to a docking-only or an\n"
+                    "  affinity-only figure. Report the two separately, or use\n"
+                    "  PDBbind for pre-training only (--pretrain) and evaluate on\n"
+                    "  the anchor set alone.\n"
+                    "  ****************************************************************\n"
+                )
+                combined.target_composition = {
+                    "anchor_vinardo_score": n_a,
+                    "pdbbind_experimental_affinity": n_t,
+                    "mixed_target_quantities": True,
+                }
                 return combined
 
         return ds
@@ -258,17 +288,15 @@ class _CombinedDataset:
 
 
 def resolve_device(device_str: str | None):
-    """Resolve device from CLI arg or auto-detect."""
-    import torch
+    """
+    Resolve device from CLI arg or auto-detect.
 
-    if device_str:
-        return torch.device(device_str)
-
-    if torch.backends.mps.is_available():
-        return torch.device("mps")
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    return torch.device("cpu")
+    An explicit but unavailable request (e.g. --device cuda on a Mac) now
+    raises with the list of available backends instead of returning a device
+    that fails later inside the training loop.
+    """
+    from Graph_model.train.device import resolve_device as _resolve
+    return _resolve(device_str or "auto")
 
 
 # ── Subprocess-based model training ───────────────────────────────────────────

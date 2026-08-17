@@ -36,32 +36,35 @@ from rdkit.Chem import rdMolDescriptors
 
 # ── SMARTS definitions ────────────────────────────────────────────────────────
 
-# FIXME(features): this pattern is WRONG and matches nothing in the catalogue.
-# "Oc1cc(O)c(O)cc1" places hydroxyls at ring positions 1,3,4 (hydroxyquinol) —
-# they are NOT three-adjacent, so it does not match a galloyl/gallate ring.
-# Verified: galloyl_strict == 0 for all 9 ligands, gallic acid included.
+# Feature-schema version. Bump whenever a change here alters the numeric value
+# of any feature, so that a results file can be traced to the code that made it.
+#   1 : original patterns (galloyl_strict identically 0; every trihydroxy ring
+#       double-counted as pyrogallol + catechol -> 1.67 per ring).
+#   2 : corrected patterns, ring-level disjoint accounting (current).
+FEATURE_SCHEMA_VERSION = 2
+
+# ── Corrected 2026-08 (schema v2) ────────────────────────────────────────────
+# The previous pattern "Oc1cc(O)c(O)cc1" places hydroxyls at ring positions
+# 1,3,4 (hydroxyquinol). Those are not three-adjacent, so it matched no ligand
+# in the catalogue -- galloyl_strict was identically zero for all nine, gallic
+# acid included, and its 1.00 weight never contributed. `galloyl_weighted` was
+# then carried by the pyrogallol and catechol patterns, which BOTH match every
+# trihydroxyphenyl ring, scoring each ring 1.00 + 0.67 = 1.67 instead of 1.00.
 #
-# Consequences, all currently live:
-#   * the `galloyl_strict` feature is identically zero, so its 1.00 weight in
-#     _GALLOYL_WEIGHTS never contributes;
-#   * `galloyl_weighted` is carried entirely by the pyrogallol + catechol
-#     patterns, which BOTH match every galloyl ring — so each ring scores
-#     1.00 + 0.67 = 1.67 rather than 1.00 (gallic acid -> 1.67, PGG -> 8.35).
-#
-# The correct three-adjacent-hydroxyl pattern is:
-#     "[OX2H]c1c([OX2H])c([OX2H])ccc1"     # matches gallic acid exactly once
-#
-# NOT changed here on purpose: swapping it alters every fragment feature and
-# therefore every reported number, so it needs a deliberate re-run rather than
-# a silent edit. Current behaviour is pinned by tests/test_chemistry.py.
-_SMARTS_GALLOYL  = "Oc1cc(O)c(O)cc1"      # 1,3,4 — see FIXME above
-# alternative pyrogallol orientation (1,2,3-OH in pyrogallol ring)
-_SMARTS_PYROGALL = "Oc1cccc(O)c1O"
-# 3,4-catechol — ortho-dihydroxyphenyl (protocatechuic acid, dopamine-like)
-# Use `Oc1ccccc1O`: OHs on the two atoms joined by the ring-closure bond (adjacent)
-_SMARTS_CATECHOL = "Oc1ccccc1O"
+# Nomenclature used below (IUPAC / standard phytochemistry):
+#   galloyl        = 3,4,5-trihydroxybenzoyl -- a trihydroxyphenyl ring bearing
+#                    an acyl carbon. This is the unit in gallate esters such as
+#                    1,2,3,4,6-penta-O-galloyl-beta-D-glucose.
+#   pyrogallol     = benzene-1,2,3-triol -- three adjacent OH, no acyl.
+#   catechol       = benzene-1,2-diol -- two adjacent OH.
+# The three are strictly nested (galloyl subset of trihydroxyphenyl subset of
+# catechol-bearing), so they are counted at RING level and made disjoint below;
+# see _count_fragment_rings.
+_SMARTS_GALLOYL  = "[OX2H]c1cc(cc([OX2H])c1[OX2H])[CX3]=[OX1]"  # 3,4,5-triOH benzoyl
+_SMARTS_PYROGALL = "[OX2H]c1cccc([OX2H])c1[OX2H]"               # benzene-1,2,3-triol
+_SMARTS_CATECHOL = "[OX2H]c1ccccc1[OX2H]"                       # benzene-1,2-diol
 # Generic aromatic OH count (broad phenol)
-_SMARTS_PHENOL   = "Oc1ccccc1"
+_SMARTS_PHENOL   = "[OX2H]c1ccccc1"
 
 # Compiled patterns (singleton per module)
 _PAT_GALLOYL  = Chem.MolFromSmarts(_SMARTS_GALLOYL)
@@ -109,14 +112,21 @@ class GalloylFragmentDetector:
                     ("galloyl_strict", "catechol", "pyrogallol",
                      "total_aromatic_oh", "galloyl_weighted")}
 
-        g  = len(mol.GetSubstructMatches(_PAT_GALLOYL))
-        py = len(mol.GetSubstructMatches(_PAT_PYROGALL))
-        ca = len(mol.GetSubstructMatches(_PAT_CATECHOL))
-        # subtract catechol matches that overlap with galloyl/pyrogallol rings
-        # to avoid double-counting (catechol ⊂ galloyl):
-        ca_net = max(0, ca - g - py)
-        # total aromatic OH — count [OH] directly attached to aromatic ring
-        ph = len(mol.GetSubstructMatches(_PAT_PHENOL))
+        # Count at RING level, then make the three classes disjoint. Matching
+        # per-SMARTS-hit and subtracting (the previous approach) is wrong
+        # because a single trihydroxyphenyl ring yields TWO catechol hits, so
+        # `ca - g - py` left one spurious catechol behind on every such ring.
+        g_rings  = _matched_rings(mol, _PAT_GALLOYL)
+        tri_rings = _matched_rings(mol, _PAT_PYROGALL)
+        ca_rings = _matched_rings(mol, _PAT_CATECHOL)
+
+        # galloyl ⊂ trihydroxyphenyl ⊂ catechol-bearing
+        py_net_rings = tri_rings - g_rings
+        ca_net_rings = ca_rings - tri_rings
+
+        g      = len(g_rings)
+        py     = len(py_net_rings)
+        ca_net = len(ca_net_rings)
         # aromatic OH atoms
         aro_oh = _count_aromatic_oh(mol)
 
@@ -233,14 +243,45 @@ def atom_to_fragment_map(mol: Chem.Mol,
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
+def _matched_rings(mol: Chem.Mol, pattern: Chem.Mol) -> set[frozenset]:
+    """
+    Set of aromatic rings hit by *pattern*, keyed by the ring's atom indices.
+
+    Collapsing matches onto their parent ring is what makes the galloyl /
+    pyrogallol / catechol classes comparable: the same physical ring produces a
+    different number of raw SMARTS hits per pattern (a benzene-1,2,3-triol
+    matches the catechol pattern twice), so raw hit counts cannot be subtracted
+    from one another.
+    """
+    rings = [frozenset(r) for r in mol.GetRingInfo().AtomRings()]
+    out: set[frozenset] = set()
+    for match in mol.GetSubstructMatches(pattern, uniquify=True):
+        aromatic = {i for i in match if mol.GetAtomWithIdx(i).GetIsAromatic()}
+        if not aromatic:
+            continue
+        for ring in rings:
+            if aromatic <= ring:
+                out.add(ring)
+                break
+    return out
+
+
 def _count_aromatic_oh(mol: Chem.Mol) -> int:
-    """Count oxygen atoms bonded to an aromatic ring carbon (phenolic OH)."""
+    """
+    Count phenolic hydroxyls: an oxygen bearing a hydrogen, bonded to an
+    aromatic carbon.
+
+    Corrected 2026-08 (schema v2). The previous version accepted any oxygen of
+    degree 1 or 2 attached to an aromatic carbon, with no hydrogen requirement.
+    RDKit perceives the fused lactone rings of ellagic acid as aromatic, so its
+    two ester oxygens and two lactone carbonyl oxygens were all scored as
+    phenolic OH -- 8 reported against 4 actual. Requiring a hydrogen also
+    excludes aryl ethers, which have no donor and do not belong in a
+    hydrogen-bond-capacity feature.
+    """
     count = 0
     for atom in mol.GetAtoms():
-        if atom.GetSymbol() != "O":
-            continue
-        # single bond, degree 1 (bare OH) or degree 2 (ether; skip)
-        if atom.GetDegree() != 1 and atom.GetDegree() != 2:
+        if atom.GetSymbol() != "O" or atom.GetTotalNumHs() < 1:
             continue
         for nb in atom.GetNeighbors():
             if nb.GetIsAromatic() and nb.GetSymbol() == "C":

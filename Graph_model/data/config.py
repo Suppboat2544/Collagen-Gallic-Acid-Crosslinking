@@ -133,19 +133,42 @@ LIGAND_CATALOGUE: dict[str, dict] = {
         "propka_pka_oh":     [],
     },
     "NHS_ester_intermediate": {
-        # FIXME(chemistry): this entry was internally inconsistent — the stated
-        # mw (285.22) and n_ha (10) matched neither each other nor the SMILES,
-        # which RDKit reads as C10H16N2O4, MW 228.25, 16 heavy atoms (the NHS
-        # ester of 4-(dimethylamino)butanoic acid). mw/n_ha are set to the
-        # SMILES below so the catalogue is at least self-consistent, but the
-        # intended species is ambiguous: if what was docked is the NHS ester of
-        # *gallic acid* (C11H9NO7, MW 267.19, 19 heavy atoms), replace the
-        # SMILES and these two numbers together. Confirm against the docking
-        # inputs before reporting this ligand.
-        "smiles":            "O=C1CCC(=O)N1OC(=O)CCCN(C)C",
-        "pubchem_cid":       2723763,
-        "mw":                228.25,
-        "n_ha":              16,
+        # Resolved 2026-08 against the shipped docking inputs.
+        #
+        # The original entry was internally inconsistent: mw 285.22 and n_ha 10
+        # matched neither each other nor its SMILES (C10H16N2O4, MW 228.25, 16
+        # heavy atoms -- the NHS ester of 4-(dimethylamino)butanoic acid).
+        #
+        # What the campaign actually modelled is now settled by reading
+        # <data_root>/Phukhao/collagen_gallic_results/*.sdf. The EDC/NHS series
+        # there is built on PROPIONIC acid as a small stand-in for the carboxylic
+        # acid partner, not on gallic acid: EDC_Oacylisourea is the
+        # O-propanoylisourea (C11H23N3O2), which the catalogue and the structure
+        # file agree on. The consistent NHS-stage species for that series is
+        # therefore N-succinimidyl propionate, set below.
+        #
+        # The shipped structure is NOT that molecule. It reads as C6H7NO4 with a
+        # FOUR-membered ring -- exactly one CH2 short of succinimidyl propionate,
+        # and NHS.sdf is short by exactly the same CH2 (C3H3NO3 against C4H5NO3).
+        # A succinimide ring has four ring carbons; both files were built with
+        # three. This is one systematic structure-building error propagated
+        # through every NHS-containing species, not two independent typos.
+        #
+        # The catalogue records the correct chemistry. The docking scores are
+        # left untouched -- they belong to the CH2-deficient molecules and
+        # cannot be corrected by editing this file. Re-docking is required
+        # before any NHS-stage affinity is reported.
+        # Graph_model.data.provenance reports the discrepancy on every run.
+        #
+        # If the intent was instead the mechanistic gallic-acid adduct, the
+        # species is N-succinimidyl gallate, C11H9NO7, MW 267.19, 19 heavy atoms,
+        # SMILES "O=C(ON1C(=O)CCC1=O)c1cc(O)c(O)c(O)c1" -- but that is a
+        # different experiment from the one on disk, so it is not asserted here.
+        "smiles":            "CCC(=O)ON1C(=O)CCC1=O",   # N-succinimidyl propionate
+        "pubchem_cid":       None,   # not asserted; the previous CID 2723763 was
+                                     # for the dimethylaminobutanoate ester above
+        "mw":                171.15,
+        "n_ha":              12,
         "role":              "intermediate",
         "group":             "intermediate",
         "galloyl_units":     0,
@@ -259,25 +282,55 @@ BOX_TYPE_VOCAB: dict[str, int] = {
 BOX_EMBEDDING_DIM: int = 16
 N_BOX_TYPES: int = len(BOX_TYPE_VOCAB)   # 8
 
-# PropKa-derived fractional protonation of GLU/ASP at each pH
-# Encodes the "physics" of pH instead of raw pH value.
-# Source: SI-1.1 — GLU724/GLU741 Glu_cluster22 vicinity.
-#   pH 5.0 → protonation prob > 0.85  → f_protonated ~ 0.85
-#   pH 5.5 → just deprotonated        → f_protonated ~ 0.15
-#   pH 7.0 → fully deprotonated       → f_protonated ~ 0.02
-# FIXME(physics): these three values are not reachable from any single pKa.
-# Henderson-Hasselbalch with f=0.85 at pH 5.0 implies pKa 5.75, which predicts
-# f=0.64 at pH 5.5 and f=0.05 at pH 7.0 — not 0.15 and 0.02. An 0.85 -> 0.15
-# drop across 0.5 pH units is thermodynamically impossible for one titratable
-# site. Graph_model/graph/residue_data.py already implements proper HH; this
-# table is a second, contradictory pH model, and it is the one that reaches the
-# network. Left unchanged here on purpose — fixing it changes every condition
-# vector and therefore every reported number, so it needs a deliberate re-run.
+# ── Fractional protonation of the GLU carboxylate vs pH ──────────────────────
+# Corrected 2026-08. Previously a hardcoded table:
+#     {5.0: 0.85, 5.5: 0.15, 7.0: 0.02}
+# Those three numbers are not reachable from any single pKa. Henderson-
+# Hasselbalch with f = 0.85 at pH 5.0 implies pKa 5.75, which then predicts
+# f = 0.64 at pH 5.5 and f = 0.05 at pH 7.0 -- not 0.15 and 0.02. A drop from
+# 0.85 to 0.15 across 0.5 pH units is thermodynamically impossible for one
+# titratable site: HH bounds any single site to at most ~0.76 -> 0.24 over half
+# a pH unit, and only when centred exactly on its pKa. The table was also a
+# SECOND pH model contradicting the Henderson-Hasselbalch implementation in
+# Graph_model/graph/residue_data.py, and it was the one reaching the network.
+#
+# The fractions are now DERIVED from a single pKa via Henderson-Hasselbalch,
+# so there is one pH model in the codebase and the table cannot drift out of
+# thermodynamic consistency again.
+#
+#     f_protonated(pH) = 1 / (1 + 10^(pH - pKa))
+#
+# pKa source: Olsson M.H.M. et al., "PROPKA3: Consistent Treatment of Internal
+# and Surface Residues in Empirical pKa Predictions", J. Chem. Theory Comput.
+# 7(2):525-537, 2011 -- the same reference already used for the residue-level
+# table in Graph_model/graph/residue_data.py, which lists GLU at 4.07.
+#
+# NOTE FOR THE AUTHORS: if SI-1.1 reports a PropKa-shifted pKa for the specific
+# residues in question (GLU724 / GLU741 near GLU_cluster22 are buried and may
+# titrate above the 4.07 generic value), replace GLU_PKA below with that single
+# number. All three fractions then follow consistently. Do not re-enter
+# per-pH fractions by hand -- that is what produced the impossible table.
+GLU_PKA: float = 4.07     # Olsson et al. 2011; matches residue_data._PKA_LOOKUP
+
+
+def protonation_fraction(ph: float, pka: float = GLU_PKA) -> float:
+    """
+    Henderson-Hasselbalch fraction of the acid in its PROTONATED (neutral) form.
+
+        f = 1 / (1 + 10^(pH - pKa))
+
+    Monotonically decreasing in pH, as any single titratable site must be.
+    """
+    return 1.0 / (1.0 + 10.0 ** (ph - pka))
+
+
+# Experimental pH values in the study. Fractions are computed, never typed in.
+STUDY_PH_VALUES: tuple[float, ...] = (5.0, 5.5, 7.0)
+
 PROPKA_PROTONATION: dict[float, float] = {
-    5.0: 0.85,
-    5.5: 0.15,
-    7.0: 0.02,
+    ph: round(protonation_fraction(ph), 4) for ph in STUDY_PH_VALUES
 }
+# -> {5.0: 0.1051, 5.5: 0.0358, 7.0: 0.0012}
 
 # Ligand groups (for stratified splitting and evaluation)
 LIGAND_GROUPS: dict[str, str] = {

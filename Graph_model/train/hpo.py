@@ -268,7 +268,10 @@ class OptunaTuner:
             rmses.append(rmse)
 
             del model
-            torch.cuda.empty_cache() if torch.cuda.is_available() else None
+            # Was CUDA-only, so an MPS HPO sweep never released device memory
+            # between trials and drifted toward an OOM.
+            from .device import empty_cache
+            empty_cache(device)
 
         mean_rmse = sum(rmses) / len(rmses) if rmses else float("inf")
         return mean_rmse

@@ -1,0 +1,445 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[hidelinks]{hyperref}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\definecolor{okgreen}{RGB}{0,120,60}
+\definecolor{badred}{RGB}{175,30,30}
+\definecolor{warnorange}{RGB}{190,110,0}
+\newcommand{\ok}[1]{\textcolor{okgreen}{#1}}
+\newcommand{\bad}[1]{\textcolor{badred}{#1}}
+\newcommand{\warn}[1]{\textcolor{warnorange}{#1}}
+\newcommand{\code}[1]{\texttt{\small #1}}
+
+\title{Remediation Report\\
+\large What was fixed, what was found, and what only the laboratory can settle}
+\author{Code and data audit --- branch \code{north-review}}
+\date{17 August 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+This report records a remediation pass over the Collagen--Gallic-Acid
+crosslinking repository, carried out under three standing constraints:
+\textbf{do not alter any laboratory or docking result}, \textbf{do not
+substitute synthetic values that have no reference}, and \textbf{report
+everything}. Twelve defects were repaired in code and pinned by tests. One new
+finding emerged that no code change can repair: for three of the nine ligands,
+including the headline compound, the molecule that was docked is not the
+molecule it is named after. The docking scores were left exactly as released.
+\end{abstract}
+
+% =====================================================================
+\section{Ground rules observed}
+% =====================================================================
+
+\begin{itemize}\itemsep2pt
+  \item \textbf{No laboratory or docking value was modified.} No
+        $\Delta G$, no Vinardo score, no ITC measurement, no yield. Where a
+        recorded number is wrong, that is reported --- not overwritten.
+  \item \textbf{No synthetic data without a reference.} Every corrected
+        chemical value traces to PubChem, IUPAC nomenclature, or a cited
+        paper. The one quantity that was \emph{derived} rather than looked up
+        --- the missing MMP-1 box centres --- is derived from the released
+        docked poses, written to a separate file marked
+        \code{is\_measured=false}, validated against known ground truth, and
+        deliberately \emph{not} wired into training.
+  \item \textbf{Corrections that change results are declared as such.} The
+        feature fixes below alter every feature vector. A
+        \code{FEATURE\_SCHEMA\_VERSION} is now stamped into each results file
+        so no number can be silently attributed to the wrong code.
+\end{itemize}
+
+% =====================================================================
+\section{Part 1 --- Programming and model}
+% =====================================================================
+
+\subsection{Metrics: the headline statistic was computed with the wrong estimator}
+
+Spearman's $\rho$ is this study's headline metric. It was computed with
+
+\[
+  \rho = 1 - \frac{6\sum d_i^2}{n(n^2-1)}
+\]
+
+which is valid \emph{only when no values are tied}, and ranked with
+\code{argsort(argsort(\,))}, which breaks ties by row position. Vinardo writes
+affinities to two decimal places, so ties are guaranteed --- and the reported
+$\rho$ therefore depended on the row order of the CSV.
+
+Replaced with Pearson's $r$ on tie-averaged ranks, the textbook definition.
+Verified to match \code{scipy.stats.spearmanr} to $10^{-10}$ and to be exactly
+invariant under row permutation, which the previous estimator was not (it
+drifted by $8\times10^{-4}$ on a representative permutation).
+
+\warn{Honest note:} on this data the tie bias is small. It does \emph{not}
+explain the gap between the reported $\rho = 0.93$ and the measured $0.163$.
+That gap remains open (P4.1).
+
+\subsection{$R^2$ is now reported}
+
+No coefficient of determination appeared anywhere. Correlation cannot separate
+a useful model from a useless one; only
+$R^2 = 1 - \mathrm{SS_{res}}/\mathrm{SS_{tot}}$ answers ``does this beat
+predicting the mean?'', and it goes negative when the answer is no. It is now
+computed per fold and aggregated across folds. Note this is the
+regression-against-the-mean form, not $r^2$: the two differ exactly when
+predictions are biased or mis-scaled, which is the failure mode worth
+catching.
+
+\subsection{Results are now traceable to the code that produced them}
+
+Each results file carries a \code{provenance} block: git commit and dirty
+flag, Python and torch versions, resolved device, feature-schema version, and
+the ligand-identity verdict. Two of the defects found in this audit --- a
+feature that was identically zero, and a shipped cache built by an older
+version --- were invisible precisely because nothing recorded which code wrote
+which number.
+
+\subsection{Mixed target quantities are now impossible to use silently}
+
+\code{--include-transfer} pools anchor rows (Vinardo docking \emph{scores})
+with PDBbind rows (\emph{experimental} binding affinities). Both are written
+to \code{y} in kcal/mol and averaged into one RMSE and one $\rho$. Nothing
+warned. The released record count, $6{,}196 + 5{,}000 = 11{,}196$, indicates
+the published metrics were computed on such a mixture. A prominent warning now
+fires and the composition is recorded on the dataset object. The default was
+left unchanged so that no existing command silently changes meaning.
+
+\subsection{Environment pinned}
+
+\code{requirements.txt} gives supported ranges; the new
+\code{requirements-lock.txt} gives the one combination known to run end to end
+(Python 3.14.3, torch 2.13.0, RDKit 2026.3.5, NumPy 2.5.2 on Darwin arm64), so
+a reviewer can reproduce a number rather than approximately reproduce it.
+
+% =====================================================================
+\section{Part 2 --- False biochemical data}
+% =====================================================================
+
+\subsection{Fixed: the galloyl detector matched nothing}
+
+\code{\_SMARTS\_GALLOYL = "Oc1cc(O)c(O)cc1"} encodes 1,3,4-trihydroxybenzene.
+The hydroxyls are not three-adjacent, so it matched \bad{no ligand in the
+catalogue} --- \code{galloyl\_strict} was identically zero for all nine,
+gallic acid included, and its weight never contributed. The score was carried
+instead by the catechol and pyrogallol patterns, which \emph{both} match every
+trihydroxyphenyl ring, giving $1.00 + 0.67 = 1.67$ per ring.
+
+The counting scheme was also wrong in a second way: matches were counted per
+SMARTS hit and subtracted (\code{ca - g - py}), but a benzene-1,2,3-triol
+yields \emph{two} catechol hits, so one spurious catechol survived on every
+trihydroxy ring. Counting is now done at ring level with the three nested
+classes made disjoint.
+
+\begin{center}
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+\textbf{Ligand} & \textbf{Before} & \textbf{After} & \textbf{Reference} \\
+\midrule
+gallic acid          & 1.67 & \ok{1.00} & one galloyl unit \\
+pyrogallol           & 1.67 & \ok{1.00} & one pyrogallol ring, no acyl \\
+protocatechuic acid  & 0.67 & \ok{0.67} & one catechol \\
+ellagic acid         & 1.34 & \ok{1.34} & two catechol rings \\
+pentagalloylglucose  & 8.35 & \ok{5.00} & five galloyl units \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Fixed: phenolic hydroxyls were over-counted}
+
+\code{total\_aromatic\_oh} accepted any oxygen of degree 1--2 bonded to an
+aromatic carbon, with no hydrogen requirement. RDKit perceives ellagic acid's
+fused lactone rings as aromatic, so its two ester oxygens and two lactone
+carbonyls were scored as phenolic hydroxyls: \bad{8 against 4 actual}. All
+nine ligands now match reference values.
+
+\subsection{Fixed: the pH encoding was thermodynamically impossible}
+
+The condition encoder read a hardcoded table
+$f = \{5.0{:}\,0.85,\ 5.5{:}\,0.15,\ 7.0{:}\,0.02\}$. No single p$K_a$
+produces it. Fitting $f = 0.85$ at pH 5.0 implies $\mathrm{p}K_a = 5.75$,
+which predicts $0.64$ at pH 5.5 and $0.05$ at pH 7.0. More fundamentally,
+Henderson--Hasselbalch bounds any single titratable site to a drop of at most
+$0.76 \to 0.24$ over half a pH unit, and only when centred exactly on its
+p$K_a$; the table claimed $0.85 \to 0.15$.
+
+It was also a \emph{second} pH model contradicting the correct
+Henderson--Hasselbalch implementation already present in
+\code{graph/residue\_data.py} --- and the wrong one was the one reaching the
+network. The fractions are now derived from a single p$K_a$,
+
+\[
+  f(\mathrm{pH}) = \frac{1}{1 + 10^{\,\mathrm{pH} - \mathrm{p}K_a}},
+  \qquad \mathrm{p}K_a(\mathrm{GLU}) = 4.07,
+\]
+
+after Olsson \emph{et al.}, \emph{J.\ Chem.\ Theory Comput.} 7(2):525--537
+(2011) --- the reference already used elsewhere in the codebase --- giving
+$\{5.0{:}\,0.1051,\ 5.5{:}\,0.0358,\ 7.0{:}\,0.0012\}$. A test asserts the
+table equals the formula, so a hand-typed value cannot return, and a second
+test asserts the two modules agree for GLU at every pH.
+
+\warn{Recorded caveat.} The corrected fractions span 0.001--0.105, about
+$8\times$ narrower than the old, incorrect 0.02--0.85. The encoding is now
+right but poorly conditioned as a network input beside features on $[0,1]$.
+The principled reparameterisation is the HH exponent
+$(\mathrm{p}K_a - \mathrm{pH})$, which is linear in pH and well scaled --- but
+that is a \emph{modelling} change rather than a correctness fix, so it was
+documented and not applied.
+
+\subsection{Fixed: the NHS ester intermediate was internally inconsistent}
+
+The entry declared MW 285.22 and 10 heavy atoms, matching neither each other
+nor its own SMILES. Rather than guess, the shipped docking inputs were read.
+The EDC/NHS series is built on \emph{propionic acid} as the carboxylic-acid
+stand-in --- catalogue and structure file agree on the O-propanoylisourea ---
+so the consistent NHS-stage species is N-succinimidyl propionate,
+$\mathrm{C_7H_9NO_4}$, MW 171.15, 12 heavy atoms. The catalogue is now
+\ok{9 of 9 self-consistent} between SMILES, formula, MW and heavy-atom count.
+
+% =====================================================================
+\section{Part 3 --- The finding that code cannot fix}
+% =====================================================================
+
+Nothing in the pipeline had ever compared the molecule \emph{named} in the
+catalogue against the molecule the docking campaign actually \emph{read from
+disk}. Doing so shows that three of nine ligands were docked as a different
+compound. The result is identical in the v1 and v2 Drive snapshots, so it is
+not a regression from the dataset update.
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Ligand} & \textbf{Named} & \textbf{Docked} \\
+\midrule
+pentagalloylglucose & $\mathrm{C_{41}H_{32}O_{26}}$, 940.68, \textbf{5 galloyl}
+  & \bad{$\mathrm{C_{27}H_{24}O_{18}}$, 636.47, \textbf{3 galloyl}} \\
+NHS & $\mathrm{C_4H_5NO_3}$, 115.09
+  & \bad{$\mathrm{C_3H_3NO_3}$, 101.06} \\
+NHS ester intermediate & $\mathrm{C_7H_9NO_4}$, 171.15, 5-ring
+  & \bad{$\mathrm{C_6H_7NO_4}$, 157.12, 4-ring} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Pentagalloylglucose.} The input \code{.sdf} contains four
+disconnected fragments: a tri-\emph{O}-galloylglucose plus three loose gallic
+acid molecules. Docking retained only the largest. All 68 released PGG poses
+are tri-\emph{O}-galloylglucose --- three galloyl units, not five.
+
+\paragraph{The two NHS species are one defect.} A succinimide ring has four
+ring carbons; both structures were built with three. The deficiency is exactly
+$\mathrm{CH_2}$ (14.03\,Da) in each case. One upstream structure-building
+error propagated to every NHS-containing species.
+
+\paragraph{Why this matters most.} A binding affinity is meaningful only
+beside the structure it was computed for. Every $\Delta G$ labelled
+\emph{pentagalloylglucose} belongs to a molecule carrying three of the five
+galloyl groups whose count is the paper's proposed mechanism --- and PGG is the
+headline ligand. The other six ligands (gallic acid, EDC, EDC
+\emph{O}-acylisourea, protocatechuic acid, pyrogallol, ellagic acid)
+\ok{match exactly} and are unaffected.
+
+\paragraph{What was done, and not done.} The scores were left untouched;
+they belong to the molecules that were actually docked and cannot be corrected
+by editing a catalogue. The remedy is to re-dock the three structures, which
+is a laboratory/compute decision. To prevent recurrence,
+\code{Graph\_model/data/provenance.py} now compares every catalogue entry
+against its docking input by molecular formula and InChIKey skeleton. It runs
+in the training preflight, is recorded in every results file under
+\code{provenance.ligand\_identity}, and is asserted by tests --- a mismatch
+outside the three known ones fails the suite.
+
+% =====================================================================
+\section{Part 4 --- MMP-1 box centres: derived, disclosed, not adopted}
+% =====================================================================
+
+Every MMP-1 record is built with an empty receptor. The root cause is that
+\code{mmp1\_collagenase\_docking\_results.csv} has 13 columns against the
+collagen file's 44 and carries no \code{box\_center\_*}, so
+\code{hetero\_dataset.py} defaults the centre to the origin --- tens of
+angstroms from a protein spanning $z \in [13.5, 57.9]$.
+
+The geometry was never recorded, but the poses were, and a pose can only be
+generated inside its search box. \code{scripts/reconstruct\_mmp1\_boxes.py}
+takes the centroid of all pose heavy atoms per (receptor, box) group.
+
+\begin{itemize}\itemsep2pt
+  \item \textbf{Validated where the answer is known.} Applying the identical
+        procedure to collagen: 31 boxes, \ok{mean error 4.94\,\AA},
+        median 4.78, range 1.39--7.94. Against a 20\,\AA{} box this recovers
+        the right binding \emph{region}, not the original box.
+  \item \textbf{Coverage.} \ok{67 of 67} (receptor, box) pairs recovered from
+        335 poses.
+  \item \textbf{Occupancy --- the test that matters.} The defect is not the
+        missing centre but the empty box. At the origin all three receptors
+        yield \bad{0 atoms}. The reconstructed centres yield a median of
+        \ok{148--220 receptor atoms}, with \ok{61 of 67} boxes non-empty.
+  \item \textbf{Six boxes remain unusable} and are named in the output. Their
+        poses sit off the receptor surface, so the centroid is not a box
+        centre.
+  \item \textbf{Box \emph{size} is not recoverable.} Pose extent is a lower
+        bound, not a measurement, and is emitted under a name that says so.
+\end{itemize}
+
+A receptor-matching bug in the first draft of this script silently merged
+\code{porcine\_MMP1\_966C\_apo} into \code{porcine\_MMP1\_966C} --- two
+different structures. It was caught by the coverage count (53/67 instead of
+67/67) and fixed by matching receptor names against a known list rather than
+by regular expression. Noted here because it is exactly the class of error
+this report is about.
+
+Output is a \emph{sidecar} CSV with \code{method} and \code{is\_measured=false}
+columns. The shipped CSVs are untouched, and the reconstruction is
+\textbf{not} wired into training. Reconstructed geometry is not measured
+geometry; whether to adopt it is the authors' call. The authoritative values
+should come from the original Vina/Vinardo configuration files, which
+additionally resolve which box and which receptor each row refers to.
+
+% =====================================================================
+\section{Part 5 --- v2 LOLO result, and what $R^2$ revealed}
+% =====================================================================
+
+The full 9-fold LOLO run on the updated (v2) dataset completed in 3.11\,h on
+MPS, seed 0, anchor-only, 200-epoch cap with early stopping.
+
+\begin{center}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+ & \textbf{RMSE} & \textbf{Pearson $r$} & \textbf{Spearman $\rho$} \\
+\midrule
+Table~IV claim        & 1.33  & ---   & \textbf{0.93} \\
+Measured, v1 data     & 1.047 & 0.291 & \bad{0.163} \\
+Measured, v2 data     & \textbf{0.903} & 0.349 & \bad{\textbf{0.190}} \\
+\midrule
+Baseline: global mean & 1.029 & & \\
+Baseline: per-box mean& 0.935 & & \\
+Baseline: per-ligand mean (oracle) & \textbf{0.547} & & \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The v2 data improves RMSE by 14\% and $\rho$ from 0.163 to 0.190, and 5 of 9
+folds now beat their baseline (was 4 of 9). \bad{The gap to the claimed
+$\rho = 0.93$ is unchanged in character.}
+
+\paragraph{The $R^2$ column is the finding.} $R^2$ against each held-out
+ligand's own mean is \bad{negative in 8 of 9 folds}, mean $-2.00$:
+
+\begin{center}
+\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Held-out ligand} & \textbf{RMSE} & \textbf{sd$(y)$} & \textbf{$R^2$} \\
+\midrule
+EDC                      & 0.722 & 0.282 & \bad{$-5.55$} \\
+EDC \emph{O}-acylisourea & 0.631 & 0.455 & \bad{$-0.93$} \\
+NHS                      & 0.706 & 0.312 & \bad{$-4.11$} \\
+NHS ester intermediate   & 0.459 & 0.378 & \bad{$-0.48$} \\
+ellagic acid             & 1.429 & 0.707 & \bad{$-3.08$} \\
+gallic acid              & 0.641 & 0.483 & \bad{$-0.76$} \\
+pentagalloylglucose      & 2.491 & 1.400 & \bad{$-2.17$} \\
+protocatechuic acid      & 0.417 & 0.469 & \ok{$+0.21$} \\
+pyrogallol               & 0.632 & 0.435 & \bad{$-1.11$} \\
+\midrule
+\textbf{Aggregate}       & \textbf{0.903} & \textbf{0.547} & \bad{\textbf{$-2.00$}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This is precisely the failure that correlation alone conceals, and the reason
+$R^2$ was added. The model beats the global baseline only because it places
+each ligand at roughly the right overall \emph{level} --- between-ligand
+signal, obtainable from molecular size alone. \emph{Within} a held-out ligand,
+which is where the study's actual experimental variables live (pH,
+temperature, docking box), it explains none of the variance and is on average
+$3\times$ worse than simply predicting that ligand's mean.
+
+A model that cannot resolve the pH and temperature dependence of a single
+ligand cannot support a claim about how pH and temperature govern
+crosslinking.
+
+\paragraph{Two caveats on these numbers.} First, both runs predate the
+feature corrections above --- they are feature schema~1, and the galloyl and
+pH fixes change every feature vector, so a schema-2 re-run is required before
+any of this is quoted as final. Second, the model's test sets total 6{,}276
+rows against 6{,}491 in the CSVs: 3.3\% of rows are dropped, now by explicit
+row-dropping on missing targets rather than the previous silent
+\code{NaN}$\to$0.0 imputation. The baseline figures were computed on the CSV
+rows, so the two differ by that 3.3\%.
+
+% =====================================================================
+\section{Verification}
+% =====================================================================
+
+\begin{center}
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Suite} & \textbf{Result} \\
+\midrule
+Tests passing (with data root)      & \ok{103} \\
+Tests passing (no data root, CI)    & \ok{99 + 4 skipped} \\
+New test files this pass            & 3 (\code{test\_protonation}, \code{test\_provenance}, \code{test\_metrics}) \\
+Catalogue self-consistency          & \ok{9/9} \\
+Ligand identity vs docked structure & \bad{6/9 match, 3 mismatch} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The two tests that previously pinned the galloyl defect --- including a
+\code{xfail(strict=True)} --- now XPASS and fail the suite, which is the
+correct signal that the defect is gone. They were rewritten to assert correct
+chemistry.
+
+% =====================================================================
+\section{What is still open, and who can close it}
+% =====================================================================
+
+\begin{longtable}{@{}L{5.6cm}L{9.4cm}@{}}
+\toprule
+\textbf{Open item} & \textbf{Who can settle it} \\
+\midrule
+\endhead
+$\rho = 0.93$ reported vs $0.163$ measured &
+  \textbf{Authors.} Nothing else in the manuscript settles until this does.
+  Not explained by the tie-correction above. \\
+Three ligands docked as the wrong molecule &
+  \textbf{Re-dock required.} Cannot be fixed in code. Blocks every PGG and
+  NHS-stage claim. \\
+MMP-1 box geometry &
+  \textbf{Original Vina configs.} Reconstruction covers 61/67 at
+  ${\sim}5$\,\AA{} as a disclosed interim measure. \\
+Box \emph{size}, receptor identity per row &
+  \textbf{Laboratory records only.} No evidence in the released files. \\
+Feature-dependent numbers under schema 2 &
+  \textbf{One re-run.} The galloyl and pH fixes change every feature vector;
+  all previously reported feature-derived numbers were produced under
+  schema 1. \\
+pH feature conditioning &
+  \textbf{Modelling decision.} Correct but poorly scaled; see the caveat
+  above. \\
+\bottomrule
+\end{longtable}
+
+\vspace{1em}
+\noindent
+\textbf{Not attempted, by instruction:} no laboratory value was altered, and
+no missing measurement was replaced with a synthetic or randomly generated
+substitute. Where data is absent, this report says so rather than filling the
+gap.
+
+\end{document}

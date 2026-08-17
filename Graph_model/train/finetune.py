@@ -336,12 +336,8 @@ def finetune(
       'models'    : List[nn.Module]     one trained model per fold
     """
     if device is None:
-        if torch.backends.mps.is_available():
-            device = torch.device('mps')
-        elif torch.cuda.is_available():
-            device = torch.device('cuda')
-        else:
-            device = torch.device('cpu')
+        from .device import resolve_device
+        device = resolve_device("auto")
 
     if curriculum_schedule is None:
         curriculum_schedule = [10, 20]

@@ -155,12 +155,73 @@ def _json_safe(obj):
 
 # ── Detect device ──────────────────────────────────────────────────────────────
 
+from .device import loader_kwargs as _loader_kwargs
+
+
+def run_provenance() -> dict:
+    """
+    Everything needed to reproduce, or to distrust, a results file.
+
+    Records the git commit, the feature-schema version, the environment, and
+    -- critically -- whether each ligand's catalogue entry matched the
+    structure that was actually docked. A results file carrying
+    `ligand_identity.mismatched` is reporting affinities for molecules that are
+    not the ones named in it.
+    """
+    import platform
+    import subprocess
+
+    prov: dict = {
+        "python": platform.python_version(),
+        "platform": platform.platform(),
+    }
+
+    try:
+        from .device import describe
+        prov["torch_env"] = describe()
+    except Exception:
+        pass
+
+    try:
+        prov["git_commit"] = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path(__file__).resolve().parents[2],
+            capture_output=True, text=True, timeout=5,
+        ).stdout.strip() or None
+        prov["git_dirty"] = bool(subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=Path(__file__).resolve().parents[2],
+            capture_output=True, text=True, timeout=5,
+        ).stdout.strip())
+    except Exception:
+        prov["git_commit"] = None
+
+    try:
+        from ..data.features.galloyl import FEATURE_SCHEMA_VERSION
+        prov["feature_schema_version"] = FEATURE_SCHEMA_VERSION
+    except Exception:
+        pass
+
+    try:
+        from ..data.provenance import check_structures
+        checks = check_structures()
+        prov["ligand_identity"] = {
+            "matched": sorted(c.ligand for c in checks if c.status == "match"),
+            "mismatched": {c.ligand: c.detail
+                           for c in checks if c.status == "mismatch"},
+            "unverified": sorted(c.ligand for c in checks
+                                 if c.status in ("missing", "unreadable")),
+        }
+    except Exception as exc:
+        prov["ligand_identity"] = {"error": str(exc)}
+
+    return prov
+
+
 def _auto_device() -> torch.device:
-    if torch.backends.mps.is_available():
-        return torch.device('mps')
-    if torch.cuda.is_available():
-        return torch.device('cuda')
-    return torch.device('cpu')
+    """Auto-detect the compute device. Delegates to Graph_model.train.device."""
+    from .device import resolve_device
+    return resolve_device("auto")
 
 
 # ── Single model training (with tqdm + JSON tracking) ──────────────────────────
@@ -230,7 +291,8 @@ def train_single_model(
     model = model.to(device)
 
     # Train/val split
-    torch.manual_seed(seed)
+    from .device import seed_everything
+    seed_everything(seed, device)
     n = len(dataset)
     n_val = max(1, int(n * val_ratio))
     n_train = n - n_val
@@ -245,8 +307,9 @@ def train_single_model(
     train_ds = Subset(dataset, train_idx)
     val_ds = Subset(dataset, val_idx)
 
-    train_loader = PyGDataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=0)
-    val_loader = PyGDataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=0)
+    _lk = _loader_kwargs(device)
+    train_loader = PyGDataLoader(train_ds, batch_size=batch_size, shuffle=True, **_lk)
+    val_loader = PyGDataLoader(val_ds, batch_size=batch_size, shuffle=False, **_lk)
 
     # Optimizer + scheduler
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -408,19 +471,10 @@ def train_single_model(
         val_r_str = f"{val_m['pearson_r']:.4f}" if not math.isnan(val_m['pearson_r']) else "N/A"
         val_sr_str = f"{val_m['spearman_r']:.4f}" if not math.isnan(val_m['spearman_r']) else "N/A"
 
-        # Memory monitoring (RSS + MPS GPU)
-        mem_str = ""
-        try:
-            import resource
-            rss_mb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1024 * 1024)
-            if device.type == 'mps':
-                mps_mb = torch.mps.current_allocated_memory() / (1024 * 1024)
-                drv_mb = torch.mps.driver_allocated_memory() / (1024 * 1024)
-                mem_str = f"  rss={rss_mb:.0f}MB  mps={mps_mb:.0f}/{drv_mb:.0f}MB"
-            else:
-                mem_str = f"  mem={rss_mb:.0f}MB"
-        except Exception:
-            pass
+        # Memory monitoring (host RSS + device memory on CUDA and MPS alike;
+        # previously CUDA runs reported host RSS only)
+        from .device import memory_report
+        mem_str = memory_report(device)
 
         tqdm.write(
             f"  Epoch {epoch+1:3d}/{max_epochs} │ "
@@ -699,9 +753,10 @@ def train_lolo_cv(
         val_ds = Subset(dataset, fold.val_idx)
         test_ds = Subset(dataset, fold.test_idx)
 
-        train_loader = PyGDataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=0)
-        val_loader = PyGDataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=0)
-        test_loader = PyGDataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=0)
+        _lk = _loader_kwargs(device)
+        train_loader = PyGDataLoader(train_ds, batch_size=batch_size, shuffle=True, **_lk)
+        val_loader = PyGDataLoader(val_ds, batch_size=batch_size, shuffle=False, **_lk)
+        test_loader = PyGDataLoader(test_ds, batch_size=batch_size, shuffle=False, **_lk)
 
         optimizer = torch.optim.Adam(fold_model.parameters(), lr=lr, weight_decay=weight_decay)
         scheduler = _cosine_schedule(optimizer, warmup_epochs, max_epochs)
@@ -852,6 +907,7 @@ def train_lolo_cv(
             fold=fold.fold, held_out=fold.held_out_ligand, n_test=fold.n_test,
             rmse=tm['rmse'], mae=tm['mae'],
             pearson_r=tm['pearson_r'], spearman_r=tm['spearman_r'],
+            r2=tm['r2'],
             n_train=fold.n_train, n_val=fold.n_val,
             best_epoch=best_epoch, val_rmse=best_val_mse ** 0.5,
         )
@@ -859,7 +915,9 @@ def train_lolo_cv(
 
         fold_logger.finalise({
             "test_rmse": tm['rmse'], "test_mae": tm['mae'],
-            "test_pearson_r": tm['pearson_r'], "best_epoch": best_epoch,
+            "test_pearson_r": tm['pearson_r'],
+            "test_spearman_r": tm['spearman_r'], "test_r2": tm['r2'],
+            "best_epoch": best_epoch,
         })
 
     agg = aggregate_folds(fold_metrics)
@@ -872,6 +930,12 @@ def train_lolo_cv(
         "aggregate": agg,
         "folds": [fm.to_dict() for fm in fold_metrics],
         "wall_time_s": wall_time,
+        # Without this block a results file cannot be tied to the code that
+        # produced it. Two of the defects found in this repository -- a feature
+        # that was identically zero, and a shipped cache built by an older
+        # version -- were invisible precisely because nothing recorded which
+        # code wrote which number.
+        "provenance": run_provenance(),
     }
     summary_path = results_dir / f"option_{model_key.lower()}_lolo_summary.json"
     with open(summary_path, 'w') as f:

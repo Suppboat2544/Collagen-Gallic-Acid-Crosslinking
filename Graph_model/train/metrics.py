@@ -40,7 +40,7 @@ def regression_metrics(
 
     Returns
     -------
-    dict with keys: 'rmse', 'mae', 'pearson_r', 'spearman_r', 'n'
+    dict with keys: 'rmse', 'mae', 'r2', 'pearson_r', 'spearman_r', 'n'
     """
     preds   = np.asarray(preds,   dtype=float).ravel()
     targets = np.asarray(targets, dtype=float).ravel()
@@ -51,12 +51,26 @@ def regression_metrics(
     n = len(preds)
 
     if n == 0:
-        return {'rmse': float('nan'), 'mae': float('nan'),
+        return {'rmse': float('nan'), 'mae': float('nan'), 'r2': float('nan'),
                 'pearson_r': float('nan'), 'spearman_r': float('nan'), 'n': 0}
 
     err    = preds - targets
     rmse   = float(np.sqrt((err ** 2).mean()))
     mae    = float(np.abs(err).mean())
+
+    # Coefficient of determination, 1 - SS_res/SS_tot.
+    #
+    # Reported because correlation alone cannot distinguish a useful model from
+    # a useless one: a model that predicts the training mean for every input
+    # scores r ~ 0 but R2 ~ 0 too, while a model WORSE than that constant
+    # predictor scores R2 < 0. Only R2 states whether the model beats "always
+    # guess the mean", which is the question a reader actually has. This is the
+    # regression-against-the-mean form, NOT the square of Pearson r; the two
+    # differ whenever predictions are biased or mis-scaled, and reporting r^2 in
+    # place of R2 hides exactly that failure.
+    ss_res = float((err ** 2).sum())
+    ss_tot = float(((targets - targets.mean()) ** 2).sum())
+    r2 = float(1.0 - ss_res / ss_tot) if ss_tot > 0 else float('nan')
 
     # Pearson r
     if n >= 2 and preds.std() > 0 and targets.std() > 0:
@@ -70,22 +84,59 @@ def regression_metrics(
     return {
         'rmse':       rmse,
         'mae':        mae,
+        'r2':         r2,
         'pearson_r':  pearson_r,
         'spearman_r': spearman_r,
         'n':          n,
     }
 
 
+def _rankdata(a: np.ndarray) -> np.ndarray:
+    """
+    Ranks with ties averaged ('average' method, as in scipy.stats.rankdata).
+
+    Ties are not a corner case here: Vinardo writes affinities to two decimal
+    places, so thousands of rows share values and a held-out ligand routinely
+    has repeated scores.
+    """
+    order = np.argsort(a, kind="mergesort")
+    ranks = np.empty(len(a), dtype=float)
+    ranks[order] = np.arange(1, len(a) + 1, dtype=float)
+
+    # Average the ranks within each run of equal values.
+    sorted_a = a[order]
+    i = 0
+    while i < len(a):
+        j = i + 1
+        while j < len(a) and sorted_a[j] == sorted_a[i]:
+            j += 1
+        if j - i > 1:
+            ranks[order[i:j]] = ranks[order[i:j]].mean()
+        i = j
+    return ranks
+
+
 def _spearman(x: np.ndarray, y: np.ndarray) -> float:
-    """Spearman's ρ without scipy dependency."""
+    """
+    Spearman's rho, tie-corrected, without a scipy dependency.
+
+    Computed as Pearson's r on average ranks. The previous implementation used
+    the shortcut formula
+
+        rho = 1 - 6*sum(d^2) / (n*(n^2 - 1))
+
+    which is only valid when there are NO tied values. It also ranked with
+    argsort(argsort(.)), which breaks ties arbitrarily by position, so the
+    reported rho depended on row order in the CSV. With Vinardo scores rounded
+    to two decimals, ties are guaranteed and the shortcut is biased.
+    """
     n = len(x)
     if n < 2:
         return float('nan')
-    rx = np.argsort(np.argsort(x)).astype(float)
-    ry = np.argsort(np.argsort(y)).astype(float)
-    d  = rx - ry
-    rho = 1.0 - 6.0 * (d ** 2).sum() / (n * (n ** 2 - 1))
-    return float(rho)
+    rx, ry = _rankdata(x), _rankdata(y)
+    if rx.std() == 0 or ry.std() == 0:
+        return float('nan')
+    return float(np.corrcoef(rx, ry)[0, 1])
 
 
 # ── Per-fold container ─────────────────────────────────────────────────────────
@@ -104,6 +155,7 @@ class FoldMetrics:
     mae         : float kcal/mol
     pearson_r   : float
     spearman_r  : float
+    r2          : float optional — coefficient of determination vs the mean
     n_train     : int   optional — number of training records
     n_val       : int   optional — number of validation records
     best_epoch  : int   optional — epoch at which best val loss was achieved
@@ -116,6 +168,7 @@ class FoldMetrics:
     mae:        float
     pearson_r:  float
     spearman_r: float
+    r2:         float = float('nan')
     n_train:    int   = 0
     n_val:      int   = 0
     best_epoch: int   = 0
@@ -129,7 +182,8 @@ class FoldMetrics:
             f"Fold {self.fold:2d} | held-out: {self.held_out:25s} | "
             f"n={self.n_test:4d} | "
             f"RMSE={self.rmse:.4f}  MAE={self.mae:.4f}  "
-            f"r={self.pearson_r:+.4f}  ρ={self.spearman_r:+.4f}"
+            f"r={self.pearson_r:+.4f}  ρ={self.spearman_r:+.4f}  "
+            f"R²={self.r2:+.4f}"
         )
 
 
@@ -146,7 +200,12 @@ def aggregate_folds(folds: List[FoldMetrics]) -> dict[str, float]:
       mae_mean,  mae_std,
       pearson_r_mean, pearson_r_std,
       spearman_r_mean, spearman_r_std,
+      r2_mean, r2_std,
       n_folds, n_total_test
+
+    R² is aggregated alongside the correlations because it is the only one of
+    them that answers "does this beat predicting the mean?". A negative
+    r2_mean means it does not.
     """
     if not folds:
         return {}
@@ -162,12 +221,14 @@ def aggregate_folds(folds: List[FoldMetrics]) -> dict[str, float]:
     mm, ms  = _stats('mae')
     pm, ps  = _stats('pearson_r')
     sm, ss  = _stats('spearman_r')
+    r2m, r2s = _stats('r2')
 
     return {
         'rmse_mean':       rm, 'rmse_std':       rs,
         'mae_mean':        mm, 'mae_std':         ms,
         'pearson_r_mean':  pm, 'pearson_r_std':   ps,
         'spearman_r_mean': sm, 'spearman_r_std':  ss,
+        'r2_mean':         r2m, 'r2_std':        r2s,
         'n_folds':         len(folds),
         'n_total_test':    sum(f.n_test for f in folds),
     }
