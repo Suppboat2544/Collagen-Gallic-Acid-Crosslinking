@@ -60,22 +60,24 @@ __all__ = [
     "KNOWN_MISMATCHES",
 ]
 
-# Mismatches confirmed against the released data (both the v1 and v2 Drive
-# snapshots). Recorded so that a fresh run can tell a KNOWN defect from a NEW
-# one; presence here is documentation, never a licence to ignore.
+# Mismatches confirmed against the *pre-remediation* released data (v1/v2
+# Drive snapshots before B6 re-dock). After catalogue SMILES rebuild +
+# re-dock, `check_structures` should report match for all three; presence
+# here is historical documentation of the defect that motivated re-docking.
 KNOWN_MISMATCHES: dict[str, str] = {
     "pentagalloylglucose": (
-        "input .sdf is 4 disconnected fragments; docking scored only the "
-        "largest, tri-O-galloylglucose (C27H24O18, 3 galloyl units) rather "
-        "than pentagalloylglucose (C41H32O26, 5 galloyl units)"
+        "HISTORICAL: input .sdf was 4 disconnected fragments; docking scored "
+        "only the largest, tri-O-galloylglucose (C27H24O18, 3 galloyl units) "
+        "rather than pentagalloylglucose (C41H32O26, 5 galloyl units). "
+        "Re-dock with corrected connected structure required."
     ),
     "NHS": (
-        "docked as C3H3NO3 (MW 101.06); N-hydroxysuccinimide is C4H5NO3 "
-        "(MW 115.09, CID 6467) -- one CH2 short"
+        "HISTORICAL: docked as C3H3NO3 (MW 101.06); N-hydroxysuccinimide is "
+        "C4H5NO3 (MW 115.09, CID 6467) -- one CH2 short. Re-dock required."
     ),
     "NHS_ester_intermediate": (
-        "docked structure contains a 4-membered ring; a succinimidyl ester "
-        "requires a 5-membered imide ring"
+        "HISTORICAL: docked structure contained a 4-membered ring; a "
+        "succinimidyl ester requires a 5-membered imide ring. Re-dock required."
     ),
 }
 

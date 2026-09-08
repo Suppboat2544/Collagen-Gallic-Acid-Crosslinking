@@ -78,21 +78,38 @@ KNOWN_RECEPTORS: tuple[str, ...] = (
 def _pose_key(filename: str,
               receptors: tuple[str, ...] = KNOWN_RECEPTORS) -> tuple[str, str] | None:
     """
-    Split a pose filename into (receptor, docking_box).
+    Split a pose path/filename into (receptor, docking_box).
 
-    Files are named
-        collagen_gallic_results__<sample_id>__docked_<ligand>.sdf
-    where sample_id is
-        <receptor>_<ligand>_pH<x>_T<t>_<box>       for MMP-1, and
-        <ligand>_pH<x>_T<t>_<box>                  for collagen.
+    Supported layouts
+    -----------------
+    1. Flat Drive export:
+           collagen_gallic_results__<sample_id>__docked_<ligand>.sdf
+    2. Native campaign layout (this checkout):
+           <results_dir>/<sample_id>/docked_<ligand>.sdf
+       where the sample_id is the parent directory name.
+
+    sample_id forms:
+        <receptor_stem>_<ligand>_pH<x>_T<t>_<box>   for MMP-1
+        <ligand>_pH<x>_T<t>_<box>                    for collagen
 
     The receptor is identified by prefix match against a known list rather than
     by regex, because receptor names are not separable from ligand names by
     punctuation alone.
     """
-    base = os.path.basename(filename)
+    path = Path(filename)
+    base = path.name
+    sample_id: str | None = None
+
     m = re.match(r"^(?:.*?__)?(.+?)__docked_.*\.sdf$", base)
-    sample_id = m.group(1) if m else base[:-4]
+    if m:
+        sample_id = m.group(1)
+    elif base.startswith("docked_") and base.endswith(".sdf"):
+        # Native layout: parent directory is the sample_id
+        parent = path.parent.name
+        if parent and parent not in (".", ""):
+            sample_id = parent
+    if sample_id is None:
+        sample_id = base[:-4] if base.endswith(".sdf") else base
 
     for receptor in sorted(receptors, key=len, reverse=True):
         stem = receptor.removeprefix("porcine_")
@@ -135,7 +152,10 @@ def collect_groups(pose_dir: Path, receptor_filter: str | None = None) -> dict:
     groups: dict[tuple[str, str], dict] = defaultdict(
         lambda: {"coords": [], "n_poses": 0, "files": []})
     for path in sorted(pose_dir.rglob("*.sdf")):
-        key = _pose_key(path.name)
+        # Skip catalogue ligand files sitting at the results root
+        if path.parent.resolve() == pose_dir.resolve() and not path.name.startswith("docked_"):
+            continue
+        key = _pose_key(str(path))
         if key is None:
             continue
         if receptor_filter == "mmp1" and not key[0].startswith("porcine_MMP1"):
@@ -147,7 +167,7 @@ def collect_groups(pose_dir: Path, receptor_filter: str | None = None) -> dict:
             continue
         groups[key]["coords"].extend(coords)
         groups[key]["n_poses"] += 1
-        groups[key]["files"].append(path.name)
+        groups[key]["files"].append(str(path.relative_to(pose_dir)))
     return dict(groups)
 
 
