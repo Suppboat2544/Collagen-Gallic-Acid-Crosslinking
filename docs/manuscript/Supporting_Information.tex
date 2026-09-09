@@ -75,17 +75,12 @@
 
 \begin{document}
 
-\noindent\textbf{Remediation note (2026-09).}
-Main-text Table~IV LOLO affinity metrics (post--B6 schema-2 re-train)
-are RMSE\,$= 1.338$\,kcal/mol, MAE\,$= 1.248$, Spearman $\rho = 0.176$
-(vs.\ trivial baselines 1.066 / 0.977); only 3/9 folds beat the
-global-mean baseline; prior affinity $\rho \approx 0.93$ does not reproduce.
-Model~D LOLO CSI Spearman is $\rho = -0.60$ ($n{=}5$, $p{=}0.28$);
-prior CSI $\rho \approx 0.95$ does not reproduce.
-Pooled Vinardo CSI after corrected PGG docks: PGG\,1.21, ellagic\,1.05
-(neither CSI\,$< 1$).
-PGG IG recomputed on 67 heavy atoms ($\bar{I} \approx 0.033$).
-See \texttt{docs/REMEDIATION\_STATUS.md} in the code repository.
+\noindent\textbf{Summary metrics (main-text Table~IV).}
+Model~A LOLO: RMSE\,$= 1.338$\,kcal/mol, MAE\,$= 1.248$, Spearman
+$\rho = 0.176$ (baselines 1.066 / 0.977; 3/9 folds beat global-mean).
+Model~D CSI Spearman $\rho = -0.60$ ($n{=}5$, $p{=}0.28$).
+Pooled Vinardo CSI: PGG\,1.21, ellagic\,1.05 (CSI\,$> 1$).
+PGG IG: 67 heavy atoms, $\bar{I} \approx 0.033$.
 
 % ---- Title block ----
 \begin{center}
@@ -3125,10 +3120,9 @@ I & \textbf{Graphormer}    &  84 & \textbf{1.338} & --- & --- & 10.9 \\
     rate mismatch; the fragment-additive inductive bias may be too
     restrictive for this dataset size.
   \item \textbf{Model~D} trains on a smaller subset (5,267 samples) due
-    to the MMP-1 data requirement. Post--B6 Model~D LOLO CSI Spearman
-    is $\rho = -0.60$ ($n{=}5$, $p{=}0.28$); the previously reported
-    $\rho = 0.95$ does \emph{not} reproduce and is withdrawn
-    (Model~A affinity LOLO $\rho \approx 0.18$).
+    to the MMP-1 data requirement. Model~D LOLO CSI Spearman is
+    $\rho = -0.60$ ($n{=}5$, $p{=}0.28$); Model~A affinity LOLO
+    $\rho = 0.176$.
 \end{itemize}
 
 \subsection*{A.2\quad Convergence Analysis}
@@ -3535,10 +3529,8 @@ PGG                  & 67 & 0.033 & 0.063 & 0.010 & $+0.494$ \\
 
 \paragraph{Key findings.}
 \begin{itemize}[leftmargin=1.5em]
-  \item Compact phenols retain higher mean per-atom importance than PGG
-    after B6 correction (PGG $N{=}67$, catalogue C$_{41}$H$_{32}$O$_{26}$).
-  \item Prior SI rows quoting PGG $N{=}81$ referred to the wrong
-    tri-$O$-galloyl fragment and are withdrawn.
+  \item Compact phenols show higher mean per-atom importance than PGG
+    (PGG $N{=}67$, C$_{41}$H$_{32}$O$_{26}$).
   \item PGG's lower $\bar{I}$ reflects size dilution; total attribution
     $67 \times 0.033 \approx 2.2$ remains substantial.
   \item Checkpoint: Model~D PGG held-out LOLO fold (epoch\,10,

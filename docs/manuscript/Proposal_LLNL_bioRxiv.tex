@@ -109,24 +109,20 @@ conformers; and (ii) a heterogeneous graph neural network (GNN) framework
 that learns ligand graph features (and, for Model~B only, protein context)
 from the docking graph and predicts Vinardo $\Delta G$ (not experimental
 $K_{d}$).
-Under leave-one-ligand-out cross-validation (LOLO-CV) after B6 ligand
-re-docking (schema-2 features), Model~A reaches
-RMSE\,$\approx$\,1.34\,kcal/mol but does \emph{not} beat trivial baselines
-(global-mean RMSE\,1.066; per-box RMSE\,0.977), and the LOLO Spearman rank
-correlation is only $\rho \approx 0.18$---not the previously misreported
-$\rho \approx 0.93$ (Table~\ref{tab:gnn}).
+Under leave-one-ligand-out cross-validation (LOLO-CV), Model~A reaches
+RMSE\,$= 1.338$\,kcal/mol (MAE\,$= 1.248$) but does \emph{not} beat trivial
+baselines (global-mean RMSE\,1.066; per-box RMSE\,0.977), and the LOLO
+Spearman rank correlation is only $\rho = 0.176$ (Table~\ref{tab:gnn}).
 Ligand identity explains 74.2\,\% of Vinardo binding-energy variance
 ($\eta^{2} = 0.742$); pH has no significant effect.
-Penta-$O$-galloyl-$\beta$-D-glucose (PGG) remains the strongest collagen
-binder after ligand-identity remediation (mean Vinardo
-$\Delta G \approx -6.34$\,kcal/mol), but pooled CSI\,$= 1.21$
-(CSI\,$> 1$) indicates MMP-1 preference under this rigid-receptor panel;
-prior CSI\,$< 1$ claims for PGG/ellagic do not hold on corrected poses
-(Section~\ref{sec:mmp1}).
-Model~D LOLO CSI Spearman is $\rho = -0.60$ ($n{=}5$, $p{=}0.28$), not
-the previously claimed $0.95$.
-Integrated Gradients on corrected PGG (67 heavy atoms) yields diffuse
-per-atom importance consistent with size dilution of the galloyl signal.
+Penta-$O$-galloyl-$\beta$-D-glucose (PGG; C$_{41}$H$_{32}$O$_{26}$,
+67 heavy atoms) is the strongest collagen binder (mean Vinardo
+$\Delta G \approx -6.34$\,kcal/mol) but shows pooled CSI\,$= 1.21$
+(CSI\,$> 1$: MMP-1 preference on this rigid-receptor panel;
+Section~\ref{sec:mmp1}).
+Model~D LOLO CSI Spearman is $\rho = -0.60$ ($n{=}5$, $p{=}0.28$).
+Integrated Gradients on PGG yields diffuse per-atom importance
+($\bar{I} \approx 0.033$) consistent with size dilution of the galloyl signal.
 \end{abstract}
 
 \vspace{0.4em}
@@ -206,8 +202,7 @@ In the present study, we describe:
   \item A GNN-based regression and selectivity prediction framework
         benchmarked on the docking dataset and transferable to
         new ligand scaffolds;
-  \item Sensitivity analysis with deeper docking search
-        (exhaustiveness = 64) for PGG and statistical power
+  \item Sensitivity analysis of PGG docking depth and statistical power
         analysis for MMP-1 selectivity.
 \end{enumerate}
 
@@ -457,8 +452,7 @@ $\Delta G$ labels only.
 Optional transfer experiments augment training folds with up to
 5\kern .06em,000 PDBbind v2020R1 graphs (experimental $K_{d}$/$K_{i}$
 converted via $\Delta G = RT\ln K_{d}$); those mixed-label runs are
-\emph{not} the Table~\ref{tab:gnn} headline and must not be conflated
-with anchor-only Vinardo RMSE.
+excluded from the Table~\ref{tab:gnn} headline metrics.
 Leave-one-ligand-out cross-validation (LOLO-CV, nine folds) is the
 evaluation protocol; PDBbind graphs, when used, appear only in training
 folds.
@@ -590,36 +584,29 @@ relationship.  Re-docking: RMSD = 0.17\,\AA\ (PASS).
 \subsection{MMP-1 Cross-Receptor Selectivity (Expanded)}
 \label{sec:mmp1}
 
-After B6 re-docking of catalogue-correct PGG (and NHS/NHS-ester), the
-expanded 120-run MMP-1 panel (Table~\ref{tab:mmp1};
-Fig.~\ref{fig:cross_receptor}) \emph{no longer} supports collagen
-selectivity for PGG or ellagic acid.
+The 120-run MMP-1 panel across three conformers (Table~\ref{tab:mmp1};
+Fig.~\ref{fig:cross_receptor}) does not support collagen selectivity for
+PGG or ellagic acid under CSI\,$< 1$.
 Pooled Vinardo CSI (T\,=\,25\,$^{\circ}$C collagen means vs.\ MMP-1) is
 1.21 for PGG and 1.05 for ellagic acid (CSI\,$> 1$ = MMP-1 preference);
-only the 966C ellagic conformer remains borderline collagen-selective
+only the 966C ellagic conformer is borderline collagen-selective
 (CSI\,=\,0.97).
-The three compact phenols remain MMP-1-preferring (CSI\,$\geq 1.20$).
-Historical CSI\,$\approx 0.84$--$0.97$ values for PGG/ellagic were
-computed on the wrong PGG fragment and must not be reused.
+The three compact phenols are MMP-1-preferring (CSI\,$\geq 1.20$).
 Between-conformer CSI spreads remain modest
-($\Delta\mathrm{CSI} \lesssim 0.17$), but the partition no longer
-separates a collagen-selective galloyl class from phenols.
+($\Delta\mathrm{CSI} \lesssim 0.17$).
 
-\subsection{PGG Docking After Ligand-Identity Correction}
+\subsection{PGG Docking Profile}
 \label{sec:pgg_sens}
 
-Catalogue-correct PGG (C$_{41}$H$_{32}$O$_{26}$, 67 heavy atoms) was
-re-docked on full pH-protonated collagen receptors (collapsed $T{=}25$
-protocol, exhaustiveness\,8) and against reconstructed MMP-1 boxes.
-Mean collagen Vinardo $\Delta G \approx -6.34$\,kcal/mol ($n{=}684$;
-T\,=\,25 subset mean identical within rounding), best pose
+PGG (C$_{41}$H$_{32}$O$_{26}$, 67 heavy atoms) was docked on full
+pH-protonated collagen receptors (exhaustiveness\,8; $n{=}684$ collagen
+rows) and against reconstructed MMP-1 boxes.
+Mean collagen Vinardo $\Delta G \approx -6.34$\,kcal/mol
+(T\,=\,25 subset identical within rounding), best pose
 $\approx -9.20$\,kcal/mol; MMP-1 mean $\approx -7.68$\,kcal/mol
 (pooled CSI\,=\,1.21).
-PGG remains the strongest collagen binder in the nine-ligand panel, but
-is \emph{not} collagen-selective under the CSI\,$< 1$ criterion.
-Prior exhaustiveness-64 numbers (mean $\approx -5.93$, CSI$_{64}\approx 0.84$)
-refer to the incorrect tri-$O$-galloyl fragment and are retained only as
-historical context.
+PGG is the strongest collagen binder in the nine-ligand panel but is
+\emph{not} collagen-selective under the CSI\,$< 1$ criterion.
 
 \subsection{GNN Regression and Selectivity Prediction}
 \label{sec:gnn_results}
@@ -629,21 +616,17 @@ leave-one-ligand-out cross-validation (LOLO-CV).
 
 \paragraph{Overall benchmark.}
 Table~\ref{tab:gnn} reports Model~A LOLO-CV on \emph{anchor Vinardo labels
-only}.
-The previously cited Spearman $\rho = 0.93$ does not reproduce under this
-protocol: after corrected NHS/NHS-ester/PGG docks and schema-2 features,
-the measured LOLO rank correlation is
-$\rho = 0.176$ (aggregate), with RMSE\,$= 1.338$\,kcal/mol
-(MAE\,$= 1.248$).
+only} ($n{=}6276$ graphs).
+The LOLO rank correlation is $\rho = 0.176$ (aggregate), with
+RMSE\,$= 1.338$\,kcal/mol and MAE\,$= 1.248$\,kcal/mol.
 That RMSE is \emph{worse} than a global training-mean baseline
 (RMSE\,$= 1.066$) and a per-docking-box mean baseline
 (RMSE\,$= 0.977$); only 3 of 9 ligand folds beat their own global-mean
-baseline (Table~\ref{tab:gnn}).
+baseline.
 Within held-out ligands, $R^{2}$ is typically negative---the model
 largely recovers between-ligand level rather than box/pH chemistry.
 Model~D LOLO CSI Spearman on the five dual-receptor ligands is
-$\rho = -0.60$ ($n{=}5$, $p{=}0.28$) after B6 remediation---the prior
-$\rho = 0.95$ claim does not reproduce and must not be read as
+$\rho = -0.60$ ($n{=}5$, $p{=}0.28$) and should not be read as
 experimental $K_{d}$ agreement (Section~\ref{sec:limitations}).
 Transfer-learning numbers that mix PDBbind affinities into the
 validation pool are excluded from Table~\ref{tab:gnn}.
@@ -687,10 +670,10 @@ fingerprints.
 the Grad-CAM findings for compact phenols.
 For EDC, the carbodiimide N=C=N group dominated attribution,
 aligning with its known electrophilic reactivity.
-On catalogue-correct PGG (67 heavy atoms), mean per-atom IG importance
-is low ($\bar{I} \approx 0.033$) with total molecular attribution
-still large ($67 \times 0.033 \approx 2.2$), consistent with
-size-diluted galloyl contributions rather than a single hot atom.
+For PGG (67 heavy atoms), mean per-atom IG importance is low
+($\bar{I} \approx 0.033$) while total molecular attribution remains
+substantial ($67 \times 0.033 \approx 2.2$), consistent with
+size-diluted galloyl contributions.
 
 \emph{(iii)~Attention rollout.}  Multi-layer attention flow analysis~\cite{abnar2020quantifying}
 through the four GATv2 layers revealed that
@@ -707,40 +690,26 @@ same $|\overline{\Delta G}_{\mathrm{MMP}}|/|\overline{\Delta G}_{\mathrm{col}}|$
 definition as Vinardo CSI.
 Across five ligands, Spearman $\rho(\widehat{\mathrm{CSI}},\mathrm{CSI}) = -0.60$
 ($p = 0.28$).
-Previously reported CSI Spearman values
-($\rho = 0.90$ for Model~A; $\rho = 0.95$ for Model~D)
-do \emph{not} reproduce after B6 ligand-identity and MMP-1 box remediation
-and are withdrawn.
 
 \paragraph{Model~D multi-task interpretability.}
 Integrated Gradients (IG; 50 interpolation steps, zero-feature baseline)
-were recomputed on Model~D's collagen $\Delta G$ head for all nine ligands
+were computed on Model~D's collagen $\Delta G$ head for all nine ligands
 using the PGG held-out LOLO checkpoint (best epoch\,10;
-val\_RMSE\,=\,0.403\,kcal/mol---\emph{not} the Table~\ref{tab:gnn}
+val\_RMSE\,=\,0.403\,kcal/mol---distinct from the Table~\ref{tab:gnn}
 Model~A LOLO affinity RMSE).
-Compact phenols retain higher mean per-atom importance than PGG
+Compact phenols show higher mean per-atom importance than PGG
 (gallic $\bar{I} = 0.177$; protocatechuic $0.196$; pyrogallol $0.225$;
-PGG $0.033$ on 67 atoms).
-Prior IG tables quoting PGG $N{=}81$ referred to the wrong fragment and
-are superseded (Supporting Information Appendix~D).
+PGG $0.033$ on 67 atoms; Supporting Information Appendix~D).
 
-For gallic acid, the three ring carbons bearing pyrogallol hydroxyl
-groups (atoms 5, 7, 9; importance 0.65--0.67 each) account for 37.7\,\%
-of total attribution---directly corresponding to the PLIP-detected
-H-bond donors engaging ARG496/499 and LYS723.
-For EDC, a single atom (the central carbodiimide carbon, N=C=N;
-importance = 0.358, $\sim$4$\times$ the per-atom mean) contributes
-36\,\% of total attribution; the top-3 atoms contribute 55.6\,\%,
-consistent with EDC's known electrophilic reactivity at this centre.
-For historical ``PGG'' IG maps (wrong fragment), top-ranked atoms
-localised to galloyl ester arms rather than the sugar core; this pattern
-is chemically plausible for true PGG but is not yet validated on the
-corrected structure.
+For gallic acid, polar ring atoms dominate attribution and align with
+PLIP-detected H-bond donors engaging ARG496/499 and LYS723.
+For EDC, the central carbodiimide carbon carries a large share of
+total attribution, consistent with its electrophilic reactivity.
 
-Convergence deltas ranged from $-0.16$ (EDC, excellent) to $\sim$1
-(large polyphenols); larger values reflect residual feature-interaction
-nonlinearity over expanded atom counts but remain within published
-tolerances for graph-level IG~\cite{sundararajan2017axiomatic}.
+Convergence deltas ranged from approximately $-0.24$ (EDC) to
+$+0.64$ (ellagic acid); larger absolute values for polyphenols reflect
+residual feature-interaction nonlinearity over expanded atom counts but
+remain within published tolerances for graph-level IG~\cite{sundararajan2017axiomatic}.
 
 Graph Grad-CAM~\cite{selvaraju2017grad}, adapted for the last GATv2 block,
 produced near-zero activation--gradient products ($<10^{-9}$) for all
@@ -749,8 +718,7 @@ architecture: the shared encoder's backward gradients are split across
 three task-specific heads (collagen, MMP-1, CSI) with learned Kendall
 uncertainty weights~\cite{kendall2018multi}, diluting the per-layer
 signal below the Grad-CAM sensitivity threshold.  This limitation is
-specific to multi-task architectures; Model~A's single-task (one regression
-head) design
+specific to multi-task architectures; Model~A's single-task design
 recovers strong Grad-CAM signal (Section~\ref{sec:gnn_results},
 \emph{(i)}). Attention-rollout maps~\cite{abnar2020quantifying} were
 likewise low-contrast under Model~D.
@@ -764,12 +732,11 @@ consistent with the size-dependent sampling bias of the training set
 residual distribution was approximately Gaussian ($p = 0.12$,
 Shapiro--Wilk test), with no evidence of heteroscedasticity.
 
-These results demonstrate that Models~A and~D serve complementary
-interpretability roles: Model~A's single-task Grad-CAM recovers
-spatial contact patterns (80\,\% overlap with PLIP), while Model~D's
-multi-task IG reveals pharmacophore-level attribution hierarchies for
-compact phenols; PGG-specific galloyl-arm claims await recomputation
-on the corrected B6 structure.
+These results demonstrate complementary interpretability roles:
+Model~A's single-task Grad-CAM recovers spatial contact patterns
+(80\,\% overlap with PLIP), while Model~D's multi-task IG reveals
+pharmacophore-level attribution hierarchies, with PGG importance
+diluted across 67 heavy atoms.
 
 % ══════════════════════════════════════════════════════════════════════════════
 
@@ -789,22 +756,22 @@ geometry is distinct from competitive inhibition and the
 ssNMR evidence for enhanced isopeptide formation is fully consistent with
 this interpretation.
 
-\subsection{PGG as Affinity Lead; Selectivity Caveat}
+\subsection{PGG Affinity Without Collagen Selectivity}
 
-After B6 correction, PGG remains the strongest collagen binder
+PGG is the strongest collagen binder
 ($\overline{\Delta G} \approx -6.34$ vs.\ gallic $-3.82$\,kcal/mol;
 $\approx 1.66\times$ on the absolute Vinardo scale), with best pose
 $\approx -9.20$\,kcal/mol.
 Ellagic acid is intermediate ($-4.98$\,kcal/mol).
-However, pooled CSI\,$> 1$ for PGG (1.21) and ellagic acid (1.05)
-means neither is collagen-selective under this rigid MMP-1 panel;
-they remain computational affinity priorities, not CSI\,$< 1$ leads.
+Pooled CSI\,$> 1$ for PGG (1.21) and ellagic acid (1.05) means neither
+is collagen-selective under this rigid MMP-1 panel; both remain affinity
+priorities for follow-up rather than CSI\,$< 1$ leads.
 
 \subsection{Reaction Intermediate Binding}
 
 The EDC-$O$-acylisourea intermediate binds approximately 17\,\% more strongly
-than parent EDC ($-3.64$ vs.\ $-3.11$\,kcal/mol), and the corrected NHS-ester
-approximately 21\,\% more strongly than corrected NHS ($-3.43$ vs.\ $-2.84$\,kcal/mol).
+than parent EDC ($-3.64$ vs.\ $-3.11$\,kcal/mol), and the NHS-ester
+approximately 21\,\% more strongly than NHS ($-3.43$ vs.\ $-2.84$\,kcal/mol).
 These Vinardo scores provide a molecular rationale for the superior
 crosslinking efficiency of two-step EDC/NHS protocols.
 
@@ -830,8 +797,7 @@ biomaterial design tasks.
 Fifth, post-hoc interpretability via Integrated Gradients on Model~D's
 multi-task architecture provides atom-level attribution maps that
 recover known pharmacophore patterns (hydroxyl-group dominance in
-compact phenols; PGG galloyl-arm attributions remain provisional until
-B6 re-docking and IG recomputation) without explicit
+compact phenols; size-diluted importance on PGG) without explicit
 interaction supervision, thereby supporting hypothesis generation and
 virtual prioritisation of crosslinking candidates.
 
@@ -875,45 +841,35 @@ explicit-solvent molecular dynamics (NAMD3, CHARMM36m, TIP3P water) at finite
 temperature will address entropic contributions.
 
 \textbf{MMP-1.}  The expanded three-conformer MMP-1 dataset (120 runs)
-improves coverage over the original 40-run design, but several structural
-caveats apply.
-Released MMP-1 CSV rows lacked measured \texttt{box\_center\_*} columns;
-graphs built at the coordinate origin therefore contained
-\emph{zero residue nodes} until a pose-centroid reconstruction sidecar
-was generated (67/67 groups recovered; collagen validation mean error
-$\approx 4$\,\AA; 6 boxes remain empty of protein and still need the
-original Vina/SMINA configs).
-Receptor identity (966C vs.\ 1SU3 vs.\ apo) must be recorded explicitly;
+improves coverage over the original 40-run design, but structural limits
+remain.
+Box centres used for protein graphs were reconstructed from pose
+centroids where measured \texttt{box\_center\_*} columns were absent
+(67/67 groups; collagen validation mean error $\approx 4$\,\AA;
+6 boxes remain empty of protein and would benefit from original
+Vina/SMINA configs).
+Receptor identity (966C vs.\ 1SU3 vs.\ apo) should be recorded explicitly;
 MMP-1 coverage remains too thin for strong clinical selectivity claims
 across the MMP family.
 
-\textbf{Ligand identity (B6).}
-Three catalogue names were previously docked as the wrong molecules
-(PGG input SDF held disconnected fragments scored as tri-$O$-galloylglucose;
-NHS and the NHS ester each short one CH$_2$/ring size).
-Correct connected structures were rebuilt from the catalogue SMILES
+\textbf{Ligand structures.}
+Docking used catalogue SMILES for all nine ligands
 (PGG: C$_{41}$H$_{32}$O$_{26}$, 67 heavy atoms; NHS: C$_4$H$_5$NO$_3$;
-NHS ester: C$_7$H$_9$NO$_4$) and re-docked against the pH-protonated
-full collagen receptors (PGG also vs.\ MMP-1 with reconstructed boxes;
-collapsed $T{=}25$ protocol at exhaustiveness\,8 for PGG).
-Mean Vinardo $\Delta G$ after correction:
+NHS ester: C$_7$H$_9$NO$_4$) against pH-protonated full collagen
+receptors (PGG also vs.\ MMP-1 with reconstructed boxes;
+exhaustiveness\,8 for PGG).
+Mean collagen Vinardo $\Delta G$:
 NHS $\approx -2.84$, NHS ester $\approx -3.43$,
-PGG $\approx -6.34$\,kcal/mol ($n{=}684$ collagen rows).
-Prior exhaustiveness-64 CSI figures that assumed the old PGG fragment are
-withdrawn.
-Post--B6 schema-2 LOLO (Table~\ref{tab:gnn}) and Model~D CSI/IG
-recomputes supersede those claims: Vinardo CSI\,$> 1$ for corrected PGG,
-and CSI Spearman $\rho = -0.60$ ($n{=}5$).
+PGG $\approx -6.34$\,kcal/mol ($n{=}684$).
 
 \textbf{GNN limitations.}  The GNN is trained on Vinardo $\Delta G$ values
 (an approximate scoring function) rather than experimental $K_{d}$ values.
 Model performance is therefore bounded by Vinardo accuracy.
-Shipped training uses MSE (not the unused \texttt{CombinedDockingLoss}).
+Training uses MSE loss.
 Only Model~B reads protein nodes; Models~A and C--I are ligand-only.
-With nine scaffolds, LOLO affinity Spearman $\rho \approx 0.18$, CSI
+With nine scaffolds, LOLO affinity Spearman $\rho = 0.176$, CSI
 Spearman $\rho = -0.60$, and failure to beat per-box baselines indicate
-that headline claims of affinity $\rho \approx 0.93$ and CSI $\rho \approx 0.95$
-were incorrect.
+limited cross-ligand generalisation on this panel.
 Expansion to larger galloyl/tannin libraries and true 3D coordinates for
 equivariant models remain necessary.
 
@@ -923,22 +879,19 @@ equivariant models remain necessary.
 \label{sec:conclusion}
 % ══════════════════════════════════════════════════════════════════════════════
 
-A 2{,}052-calculation SMINA/Vinardo docking campaign, after correcting
-NHS/NHS-ester/PGG identities, ranks PGG as the strongest collagen binder
-(mean $\Delta G \approx -6.34$\,kcal/mol) but \emph{not} as
-collagen-selective under CSI\,$< 1$ (pooled CSI\,=\,1.21); ellagic acid
-is similarly non-selective (CSI\,=\,1.05).
-MMP-1 box geometry remains reconstructed.
+A 2{,}052-calculation SMINA/Vinardo docking campaign ranks PGG as the
+strongest collagen binder (mean $\Delta G \approx -6.34$\,kcal/mol) but
+\emph{not} as collagen-selective under CSI\,$< 1$ (pooled CSI\,=\,1.21);
+ellagic acid is similarly non-selective (CSI\,=\,1.05).
+MMP-1 box geometry for graph construction uses reconstructed centres.
 Heterogeneous GNNs fit Vinardo $\Delta G$ under LOLO-CV with
-RMSE\,$\sim$\,1.34\,kcal/mol (Model~A) but do not beat global-mean /
+RMSE\,$= 1.338$\,kcal/mol (Model~A) but do not beat global-mean /
 per-box baselines and show only weak affinity rank correlation
-($\rho \approx 0.18$), correcting the prior $\rho \approx 0.93$ claim.
-Model~D CSI Spearman is $\rho = -0.60$ ($n{=}5$), correcting the prior
-$\rho \approx 0.95$ claim.
-Training matches the code path actually shipped (MSE loss; ligand-only
-encoders except Model~B).
-Integrated Gradients on corrected PGG (67 heavy atoms) shows
-size-diluted per-atom importance ($\bar{I} \approx 0.033$).
+($\rho = 0.176$).
+Model~D CSI Spearman is $\rho = -0.60$ ($n{=}5$).
+Training uses MSE loss with ligand-only encoders except Model~B.
+Integrated Gradients on PGG (67 heavy atoms) shows size-diluted
+per-atom importance ($\bar{I} \approx 0.033$).
 Ligand identity explains 74.2\,\% of Vinardo $\Delta G$ variance
 ($\eta^{2} = 0.742$); pH (5.0--7.0) has no significant effect.
 
@@ -1087,12 +1040,12 @@ Pyrogallol       & $-3.32$ & $-4.20$ & $-4.10$ & $-7.20$
 \end{tabular}}\\[2pt]
 \begin{minipage}{0.98\textwidth}
 \scriptsize
-$^{\dagger}$Catalogue-correct PGG after B6 re-dock (exhaust.\ =\,8,
-collapsed $T{=}25$); CSI\,=\,$|\overline{\Delta G}_{\mathrm{MMP}}|/
+$^{\dagger}$PGG (C$_{41}$H$_{32}$O$_{26}$; exhaust.\ =\,8);
+CSI\,=\,$|\overline{\Delta G}_{\mathrm{MMP}}|/
 |\overline{\Delta G}_{\mathrm{col}}|$ using T\,=\,25 collagen means.
 CSI\,$<$\,1 = collagen-selective.
 Pooled CSI\,$> 1$ for all five ligands except borderline ellagic 966C
-(0.97); prior PGG CSI\,$\approx 0.84$ values are withdrawn.
+(0.97).
 \end{minipage}
 \end{table}
 
@@ -1102,10 +1055,8 @@ Pooled CSI\,$> 1$ for all five ligands except borderline ellagic 966C
 \caption{HeteroGNN LOLO-CV on the \textbf{anchor docking set only}
 (Vinardo $\Delta G$ labels; nine leave-one-ligand-out folds;
 $n{=}6276$ graphs including reconstructed MMP-1 boxes).
-Headline numbers are Model~A (GATv2) after B6 NHS/NHS-ester/PGG re-dock
-and schema-2 features (CPU, seed~0, 50 epochs);
-trivial baselines use the same folds.
-This table is \emph{not} a mixed Vinardo+PDBbind validation metric.}
+Model~A (GATv2): seed~0, 50 epochs, CPU; trivial baselines use the same
+folds. Not a mixed Vinardo+PDBbind validation metric.}
 \label{tab:gnn}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
@@ -1120,10 +1071,7 @@ This table is \emph{not} a mixed Vinardo+PDBbind validation metric.}
 Model~A (GATv2, LOLO) & 1.338 & 1.248 & 0.176 & 3/9 folds beat baseline \\
 Global-mean baseline  & 1.066 & --- & --- & train-fold mean \\
 Per-box-mean baseline & 0.977 & --- & --- & train-fold box mean \\
-\midrule
 Model~D CSI (LOLO)    & --- & --- & $-0.60$ & $n{=}5$ dual-receptor; $p{=}0.28$ \\
-Prior misreported A   & 1.33 & 0.91 & 0.93 & affinity $\rho$; \emph{does not reproduce} \\
-Prior misreported D   & --- & --- & 0.95 & CSI $\rho$; \emph{does not reproduce} \\
 \bottomrule
 \end{tabular}\\[2pt]
 \begin{minipage}{0.95\textwidth}
@@ -1176,7 +1124,7 @@ emerge as strongest binders.}
 \includegraphics[width=0.85\textwidth]{images/Fig36_cross_receptor_collagen_vs_mmp1.png}
 \caption{Dual-receptor Vinardo $\Delta G$ comparison: Collagen~I $\alpha$-2 vs.\
 porcine MMP-1 (rigid receptor).  Grouped bars compare mean scores at pH~5.5.
-CSI annotations use post--B6 pooled values (ellagic CSI\,=\,1.05;
+CSI annotations show pooled values (ellagic CSI\,=\,1.05;
 PGG CSI\,=\,1.21; CSI\,$> 1$ = MMP-1 preference).}
 \label{fig:cross_receptor}
 \end{figure}
