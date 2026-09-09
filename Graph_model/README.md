@@ -1,85 +1,91 @@
 # Graph_model
 
-Heterogeneous GNN code for collagen / MMP-1 Vinardo ΔG and CSI prediction,
-aligned with **`Phukhao/Proposal_LLNL/Proposal_LLNL_bioRxiv.tex`**.
+Heterogeneous GNN code for collagen / MMP-1 **Vinardo ΔG** prediction
+(and dual-receptor CSI aggregation). Aligned with the remediated bioRxiv
+manuscript in [`docs/manuscript/Proposal_LLNL_bioRxiv.tex`](../docs/manuscript/Proposal_LLNL_bioRxiv.tex).
 
 Public snapshot:
 https://github.com/Suppboat2544/Collagen-Gallic-Acid-Crosslinking/tree/main/Graph_model
 
-## Models A–I (bioRxiv Table IV, LOLO-CV)
+> **Do not cite the old Table IV numbers (affinity ρ ≈ 0.93, CSI ρ ≈ 0.95).**
+> They do not reproduce under LOLO on corrected docks. Use the verified
+> post–B6 values below (also in the root [`readme.md`](../readme.md)).
 
-| ID | Architecture | RMSE | MAE | ρ | CSI ρ |
-|----|--------------|------|-----|---|-------|
-| A | GATv2 baseline | 1.33 | 0.91 | 0.93 | 0.90 |
-| B | Cross-attention | 1.47 | 1.01 | 0.91 | 0.85 |
-| C | Fragment MPNN | 1.51 | 1.05 | 0.89 | 0.80 |
-| D | Multi-task (3-head) | 1.39 | 0.95 | 0.92 | **0.95** |
-| E | pGET | 1.42 | 0.98 | 0.91 | 0.85 |
-| F | DimeNet++ | 1.55 | 1.10 | 0.88 | 0.80 |
-| G | EGNN | 1.48 | 1.02 | 0.90 | 0.85 |
-| H | GGNN | 1.52 | 1.06 | 0.89 | 0.80 |
-| I | Graphormer | 1.45 | 1.00 | 0.91 | 0.85 |
+## Verified LOLO (post–B6 schema-2)
 
-- Primary affinity model: **A** (~1.3 kcal/mol LOLO-CV RMSE).
-- Primary selectivity model: **D** (CSI Spearman ρ = 0.95).
+| ID | Role | Metric | Value |
+|----|------|--------|-------|
+| **A** | Affinity (GATv2) | RMSE / MAE / Spearman ρ | **1.338 / 1.248 / 0.176** |
+| — | Global-mean baseline | RMSE | 1.066 |
+| — | Per-box-mean baseline | RMSE | **0.977** (beats Model A) |
+| **D** | CSI (aggregated ΔG) | Spearman ρ vs Vinardo CSI | **−0.60** (n=5, p=0.28) |
+
+JSON: [`docs/remediation_outputs/`](../docs/remediation_outputs/).
+
 - Targets are **Vinardo docking scores**, not experimental \(K_d\).
-- Model D IG analyses may quote a **single-fold** checkpoint `val_RMSE ≈ 0.549`
-  (best epoch 45); that is **not** the Table IV LOLO-CV affinity RMSE (1.39).
+- Only **Model B** reads protein residue nodes; A and C–I are ligand-only.
+- Shipped training uses **MSE** (not `CombinedDockingLoss`).
+- Models **F/G** lack true docked 3D geometry in the feature pipeline.
+- PGG IG (Model D, 50 steps): **N = 67** HA, mean Ī ≈ 0.033
+  (checkpoint: PGG LOLO fold, epoch 10, val RMSE ≈ 0.403 — not Model A
+  LOLO affinity RMSE).
 
-## Layout (local)
+### Withdrawn prior Table IV (do not reuse)
+
+| ID | Was reported | Status |
+|----|--------------|--------|
+| A | RMSE 1.33, MAE 0.91, ρ 0.93, CSI ρ 0.90 | affinity ρ **withdrawn** |
+| D | RMSE 1.39, CSI ρ **0.95** | CSI ρ **withdrawn** |
+| B–I | various ρ ≈ 0.88–0.92 | not re-verified post-B6 |
+
+## Layout
 
 ```
 Graph_model/
-  data/           # datasets, splitters; features live in data/features/
-  graph/          # ligand / protein / bipartite builders (35-D / 13-D ligand)
+  data/           # datasets, splitters; features in data/features/
+  graph/          # ligand / protein / bipartite builders (35-D / 13-D)
   model/          # option_a … option_e, dimenet, egnn, ggnn, graphormer
-  train/          # LOLO-CV, HPO, transfer, metrics
-  interpret/      # Grad-CAM, Integrated Gradients, attention rollout
+  train/          # LOLO-CV, HPO, metrics, device
+  interpret/      # Grad-CAM, Integrated Gradients, attention
   screen/         # library scoring / Pareto
-  viz/            # comparison plots (A–I)
-  results/        # training logs, figures, Model D checkpoint artifacts
-  train_main.py   # entry point
+  viz/            # comparison plots
+  train_main.py   # multi-model entry
 ```
 
-Note: the older GitHub tree kept `features/` at the package root; this tree nests
-them under `data/features/` (same modules).
-
-## Architecture constants (match bioRxiv Methods)
+## Architecture constants
 
 - Ligand atom features: **35-D**; bond features: **13-D**
 - Model A/D backbone: 4-layer GATv2, **4 heads × 32 = 128**, MLP **160→256→128→1**
-- Model D: three heads (collagen ΔG, MMP-1 ΔG, log-CSI) + Kendall uncertainty loss;
-  MMP-1 head loss weight ×10 (120 MMP-1 vs ~2,052 collagen calculations)
+- Model D defines three heads (collagen ΔG, MMP-1 ΔG, log-CSI); train loop
+  currently backprops the collagen head via MSE. CSI ρ above is from
+  LOLO predicted mean \|ΔG\| ratios, matching the manuscript definition.
 
-## Install
+## Install / run
 
-From the repository root (`Collagen-Gallic-Acid-Crosslinking/`):
-
-```bash
-# recommended: editable package install (uses pyproject.toml)
-pip install -e .
-
-# or dependencies only
-pip install -r Graph_model/requirements.txt
-
-# optional conda env
-conda env create -f Graph_model/environment.yml
-conda activate graph-model
-pip install -e .
-```
-
-Install files:
-- `pyproject.toml` — package metadata + dependencies (`pip install -e .`)
-- `Graph_model/requirements.txt` — pip requirements list
-- `Graph_model/environment.yml` — conda environment template
-
-## Reproduce figures / metrics
+From the repository root:
 
 ```bash
-python -m Graph_model.train_main --help
-python -m Graph_model.viz.compare_models   # expects results/option_{a-i}_training.json
+pip install -e .
+export COLLAGEN_DATA_ROOT=/path/to/data   # CSVs live outside this repo
+
+python scripts/run_lolo.py --model A --epochs 50 --seeds 0 --device cpu
+python scripts/recompute_csi_ig.py --device cpu --batch-size 8
 ```
 
-`results/option_*_training.json` are **single-split** training logs used for curves.
-Manuscript Table IV reports **LOLO-CV** aggregates (see `results/comparison_summary.json`
-→ `biorxiv_table_iv_lolo_cv`).
+See root [`readme.md`](../readme.md) for full commands and data paths.
+
+## Reproduce manuscript metrics
+
+```bash
+# Affinity Table IV (Model A)
+python scripts/run_lolo.py --model A --epochs 50 --seeds 0 --device cpu \
+  --results-dir Graph_model/results/lolo_schema2_b6
+
+# CSI Spearman + per-ligand IG
+python scripts/recompute_csi_ig.py --device cpu
+```
+
+`results/option_*_training.json` are **single-split** logs for curves only.
+`Graph_model/results/comparison_summary.json` → `biorxiv_table_iv_lolo_cv`
+still stores the **historical withdrawn** table for audit trail; prefer
+`docs/remediation_outputs/` for current numbers.

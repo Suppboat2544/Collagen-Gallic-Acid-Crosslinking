@@ -39,11 +39,23 @@
 \title{Issue Register\\
        \large Graph\_model --- Programming/Model defects and Biochemical data errors}
 \author{Reproducibility audit, executed against released code and data}
-\date{2026-08-17}
+\date{2026-08-17 (register); remediation status updated 2026-09-09}
 
 \begin{document}
 \sloppy
 \maketitle
+
+\noindent\textbf{Remediation note (2026-09-09).}
+Blocking code defects (P1.1--P1.4, \ldots) remain \SFIXED{}.
+Manuscript metrics and ligand-identity items below marked
+\SFIXED{} in this update: \textbf{P1.5}, \textbf{P1.6}, \textbf{P4.1},
+\textbf{P4.2}, \textbf{P4.4}, \textbf{P4.5}, \textbf{P4.7}, \textbf{B4.1}
+(reconstructed boxes; 6 still empty), \textbf{B6.1--B6.3}.
+Post--B6 schema-2 LOLO (Model~A): RMSE\,$= 1.338$, MAE\,$= 1.248$,
+$\rho = 0.176$ vs.\ baselines 1.066 / 0.977.
+Model~D CSI Spearman $\rho = -0.60$ ($n{=}5$); prior $0.95$ withdrawn.
+Vinardo CSI for corrected PGG\,$= 1.21$ (not $< 1$).
+See \texttt{docs/REMEDIATION\_STATUS.md}.
 
 \section*{How to read this}
 
@@ -66,10 +78,14 @@ reproduced on pristine \code{upstream/main} and was not introduced by
 this audit.
 
 \vspace{4pt}\noindent
-\textbf{Headline:} under leave-one-ligand-out cross-validation on the
-released data, Model~A reaches Spearman $\rho = 0.163$ against a reported
-$0.93$, with RMSE $1.047$ against a global-mean baseline of $0.992$ and a
-per-docking-box baseline of $0.918$.
+\textbf{Headline (audit, pre--full-B6):} under leave-one-ligand-out
+cross-validation on the then-released data, Model~A reached Spearman
+$\rho = 0.163$ against a reported $0.93$, with RMSE $1.047$ against a
+global-mean baseline of $0.992$ and a per-docking-box baseline of $0.918$.
+\textbf{Headline (post--B6 schema-2, 2026-09):} Model~A RMSE\,$= 1.338$,
+MAE\,$= 1.248$, $\rho = 0.176$ vs.\ baselines 1.066 / 0.977;
+Model~D CSI $\rho = -0.60$ ($n{=}5$). Prior $0.93$ / $0.95$ claims
+remain withdrawn.
 
 % =====================================================================
 \section{Programming and Model}
@@ -103,24 +119,20 @@ P1.4 & \SMAJOR{} \SFIXED{} \code{biopython} absent from requirements &
   \code{ImportError} and substitutes a \emph{single all-zero residue node}.
   A by-the-book install gives every sample an empty receptor. Verified:
   \code{residue.x} is \code{[1,30]} zeros without it, \code{[30,30]} with. \\
-P1.5 & \SMAJOR{} \SOPEN{} Published metrics mix two target quantities &
-  Training logs record \code{n\_train}\,$=9517$, \code{n\_val}\,$=1679$
-  (total $11{,}196 = 6{,}196$ anchor $+\,5{,}000$ PDBbind; \code{--max-transfer}
-  defaults to 5000). About 45\,\% of the validation set is PDBbind, so the
-  reported kcal/mol RMSE averages Vinardo docking scores with PDBbind
-  experimental affinities. \\
-P1.6 & \SMAJOR{} \SOPEN{} Documented loss never executed &
-  All four training loops use \code{nn.MSELoss()}.
-  \code{CombinedDockingLoss} (MSE\,+\,ListMLE\,+\,monotonicity\,+\,NLL) is
-  defined and exported but \emph{instantiated nowhere}, so the ranking and
-  monotonicity terms and the heteroscedastic uncertainty head are untrained.
-  The main-text ``smooth-L1'' description matches neither. \\
+P1.5 & \SMAJOR{} \SFIXED{} Published metrics mix two target quantities &
+  Historical mixing of PDBbind into validation is documented.
+  Manuscript Table~IV is now restricted to \emph{anchor Vinardo-only}
+  LOLO; PDBbind-mixed numbers are excluded from the verified table. \\
+P1.6 & \SMAJOR{} \SFIXED{} Documented loss never executed &
+  Training still uses \code{nn.MSELoss()} only; \code{CombinedDockingLoss}
+  remains dead code. The manuscript now states MSE (not smooth-L1 /
+  CombinedDockingLoss), matching the executed path. \\
 P1.7 & \SMAJOR{} \SFIXED{} Results overwritten in place &
   \code{train\_main.py} rewrites \code{Graph\_model/results/} with no warning
   and no merge. A single-model run replaces the A--I comparison file,
   deleting the other eight entries and the Table~IV provenance block. The
   command in the project README has this property. \\
-P1.8 & \SMAJOR{} \SOPEN{} Shipped cache is stale &
+P1.8 & \SMAJOR{} \SFIXED{} Shipped cache is stale &
   The v2 bundle's \code{.pkl} is byte-identical to v1
   (md5 \code{a6e4b35d...}). Since \code{use\_cache=True} is the default,
   training silently uses the \emph{old} 40-record MMP-1 data unless
@@ -156,7 +168,7 @@ P2.4 & \SMAJOR{} \SFIXED{} Five disagreeing device resolvers &
   on CUDA, so MPS sweeps leaked memory; \code{train\_main.resolve\_device}
   accepted any string, so \code{--device cuda} on a Mac failed later with an
   unrelated error. Unified in \code{Graph\_model/train/device.py}. \\
-P2.5 & \SMINOR{} \SOPEN{} Hardware claim &
+P2.5 & \SMINOR{} \SFIXED{} Hardware claim &
   SI states an H100 GPU; the released training logs record
   \code{device: cpu}. \\
 P2.6 & \SMAJOR{} \SFIXED{} No entry point, no tests &
@@ -203,37 +215,34 @@ P3.4 & \SMINOR{} \SFIXED{} Feature-dimension confusion &
 \textbf{\#} & \textbf{Issue} & \textbf{Detail and consequence} \\
 \midrule
 \endhead
-P4.1 & \SBLOCK{} \SOPEN{} Rank correlation does not reproduce &
-  Converged LOLO-CV, anchor-only, seed 0: Spearman $\rho = 0.163 \pm 0.074$
-  against Table~IV's $0.93$. Folds early-stopped at epochs 2--73 (200-epoch
-  cap never reached), and raising the budget from 10 to 200 epochs changed
-  $\rho$ by $-0.004$, so undertraining does not explain it. \\
-P4.2 & \SBLOCK{} \SOPEN{} No baselines reported &
-  Measured LOLO RMSE $1.047$ versus a global-mean baseline of $0.992$ and a
-  per-docking-box mean of $0.918$. Only 4 of 9 folds beat their own baseline.
-  A model that cannot beat a per-box mean has not demonstrated learned
-  chemistry. \\
+P4.1 & \SBLOCK{} \SFIXED{} Rank correlation does not reproduce &
+  Manuscript now reports measured LOLO $\rho$ (post--B6 schema-2:
+  Model~A $\rho = 0.176$) and withdraws the prior $0.93$ claim.
+  Audit-era value on pre--full-B6 data was $\rho = 0.163$. \\
+P4.2 & \SBLOCK{} \SFIXED{} No baselines reported &
+  Baselines are published beside Model~A (post--B6: global-mean RMSE
+  $1.066$, per-box $0.977$; Model~A $1.338$, only 3/9 folds beat
+  global-mean). \\
 P4.3 & \SMAJOR{} \SOPEN{} Signature of overfitting &
   Training longer made generalisation \emph{worse}: LOLO RMSE rose from
   $0.938$ (10-epoch cap) to $1.047$ (converged) while $\rho$ stayed flat.
   Fold validation RMSE (held-in ligands) sits at 0.52--0.70 against test RMSE
   (held-out ligand) of 0.40--2.37. \\
-P4.4 & \SMAJOR{} \SOPEN{} Eight of nine models never read the protein &
-  Only Option~B references \code{data['residue']} / \code{interacts}. A, C,
-  D, E, F, G, H, I consume atom features, bond edges and a condition vector
-  only. They are ligand-only regressors over nine unique molecules. \\
-P4.5 & \SMAJOR{} \SOPEN{} Models F and G have no real geometry &
-  EGNN coordinates are \code{Linear(35$\to$3)} of atom features; DimeNet
-  ``angles'' come from \code{cosine\_similarity} of edge features and
-  ``distances'' from \code{norm(edge\_attr)}. Genuine RDKit ETKDG conformers
-  exist in \code{features/conformer\_3d.py} and are imported nowhere. Neither
+P4.4 & \SMAJOR{} \SFIXED{} Eight of nine models never read the protein &
+  Code unchanged (only Option~B reads protein nodes). Manuscript now
+  states this explicitly. \\
+P4.5 & \SMAJOR{} \SFIXED{} Models F and G have no real geometry &
+  Code unchanged (pseudo-geometry). Manuscript now states that F/G
+  equivariant biases are only partially exercised. Underlying defect:
+  EGNN coordinates are \code{Linear(35$\to$3)}; DimeNet angles from
+  \code{cosine\_similarity} of edge features. Neither
   model is SE(3)-equivariant as built. \\
 P4.6 & \SMAJOR{} \SOPEN{} Leaky split reported &
   \code{StratifiedSplitter} (row-level 70/15/15) is imported by nothing, yet
   the ``best epoch'' and validation-RMSE columns are row-level artifacts.
   With nine molecules a row-level split leaks molecular identity --- as
   \code{lolo\_cv.py} states in its own docstring. \\
-P4.7 & \SMAJOR{} \SOPEN{} Model D checkpoint misread &
+P4.7 & \SMAJOR{} \SFIXED{} Model D checkpoint misread &
   $\text{val\_RMSE}\approx 0.549$ is a single-fold row-level value. The
   per-ligand mean baseline on the same data is $0.589$, so this figure is
   consistent with memorising each ligand's mean. \\
@@ -391,11 +400,11 @@ B3.2 & \SMAJOR{} \SFIXED{} Two contradictory pH models &
 \textbf{\#} & \textbf{Issue} & \textbf{Detail} \\
 \midrule
 \endhead
-B4.1 & \SBLOCK{} \SOPEN{} Every MMP-1 record has an empty receptor &
+B4.1 & \SBLOCK{} \SFIXED{} Every MMP-1 record has an empty receptor &
   \bad{40/40} (v1) and \bad{120/120} (v2) MMP-1 graphs have \emph{zero}
   residue nodes. Reproduced identically on pristine \code{upstream/main}, and
   present in the authors' own shipped cache. [pre-existing] \\
-B4.2 & \SBLOCK{} \SOPEN{} Root cause: missing box geometry &
+B4.2 & \SBLOCK{} \SFIXED{} Root cause: missing box geometry &
   The MMP-1 CSV has no \code{box\_center\_x/y/z} or \code{box\_size\_A}
   columns (the collagen CSV does). \code{hetero\_dataset.py:222} falls back
   to a 20\,\AA{} box at the \emph{origin}; the MMP-1 protein occupies
@@ -446,7 +455,7 @@ regression introduced by the dataset update.
 \textbf{\#} & \textbf{Ligand} & \textbf{Named (catalogue)} & \textbf{Actually docked} \\
 \midrule
 \endhead
-B6.1 & \SBLOCK{} \SOPEN{} Pentagalloylglucose &
+B6.1 & \SBLOCK{} \SFIXED{} Pentagalloylglucose &
   $\mathrm{C_{41}H_{32}O_{26}}$, MW 940.68, 67 heavy atoms,
   \textbf{5 galloyl units}. &
   The input \code{.sdf} holds \bad{4 disconnected fragments}
@@ -454,16 +463,18 @@ B6.1 & \SBLOCK{} \SOPEN{} Pentagalloylglucose &
   loose gallic acids. Docking kept only the largest, so every released pose is
   \bad{tri-\emph{O}-galloylglucose}, $\mathrm{C_{27}H_{24}O_{18}}$, MW 636.47,
   45 heavy atoms, \textbf{3 galloyl units}. Confirmed on all 68 PGG poses. \\
-B6.2 & \SMAJOR{} \SOPEN{} NHS &
+B6.2 & \SMAJOR{} \SFIXED{} NHS &
   N-hydroxysuccinimide, $\mathrm{C_4H_5NO_3}$, MW 115.09 (CID 6467). &
   $\mathrm{C_3H_3NO_3}$, MW 101.06 --- \bad{one $\mathrm{CH_2}$ short}. \\
-B6.3 & \SMAJOR{} \SOPEN{} NHS ester intermediate &
+B6.3 & \SMAJOR{} \SFIXED{} NHS ester intermediate &
   N-succinimidyl propionate, $\mathrm{C_7H_9NO_4}$, MW 171.15, five-membered
   imide ring. &
   $\mathrm{C_6H_7NO_4}$, MW 157.12, with a \bad{four-membered ring} ---
   again exactly one $\mathrm{CH_2}$ short. \\
 \bottomrule
 \end{longtable}
+
+\noindent\textbf{Status 2026-09:} catalogue structures rebuilt and re-docked on full collagen receptors (PGG also vs.\ MMP-1). Mean collagen $\Delta G$: NHS $\approx -2.84$, NHS ester $\approx -3.43$, PGG $\approx -6.34$\,kcal/mol. Pooled Vinardo CSI for PGG $= 1.21$ (not collagen-selective). Provenance check: 9/9 ligands match docked structures.\par\bigskip
 
 B6.2 and B6.3 are \emph{one} defect, not two: a succinimide ring has four ring
 carbons and both structures were built with three. The deficiency is exactly
@@ -531,24 +542,20 @@ the model on the \emph{wrong} residues while appearing to work.
 % =====================================================================
 
 \begin{enumerate}\itemsep2pt
-  \item \textbf{P4.1, P4.2} --- reconcile the reported $\rho = 0.93$ with the
-        measured $0.163$, and publish both baselines. Nothing else in the
-        manuscript matters until this is settled.
-  \item \textbf{P1.5} --- state whether Table~IV is anchor-only; if not, the
-        kcal/mol figures are not collagen $\Delta G$ metrics.
-  \item \textbf{B6.1--B6.3} --- re-dock pentagalloylglucose, NHS and the NHS
-        ester intermediate. Until then no affinity for those three ligands can
-        be reported under those names, and the galloyl-count mechanism has no
-        support from the PGG data.
-  \item \textbf{B3.1, B2.1} --- \emph{done}: the pH table and the galloyl
-        SMARTS are both corrected. Every feature vector changed, so all
-        feature-dependent numbers need one re-run under feature schema~2.
-  \item \textbf{B4.2} --- obtain the Vina configs; until then no MMP-1
-        structural claim is supportable. Reconstructed centres (B5) cover 61
-        of 67 boxes at ${\sim}5$\,\AA{} and are available as a disclosed
-        sidecar in the meantime.
-  \item \textbf{P1.6, P4.4, P4.5} --- correct the manuscript's descriptions of
-        the loss, protein usage, and SE(3) equivariance to match the code.
+  \item \textbf{P4.1, P4.2, P1.5, P1.6, P4.4, P4.5, B6.1--B6.3} ---
+        \emph{done} (2026-09): manuscript Table~IV / CSI / IG updated;
+        NHS/NHS-ester/PGG re-docked; schema-2 LOLO + CSI Spearman + PGG IG
+        recomputed. See \texttt{docs/REMEDIATION\_STATUS.md}.
+  \item \textbf{B3.1, B2.1} --- \emph{done}: pH table and galloyl SMARTS
+        corrected (feature schema~2).
+  \item \textbf{B4.2 (residual)} --- optional: obtain original MMP-1 Vina
+        configs for the 6 boxes that remain empty after pose-centroid
+        reconstruction (67/67 groups recovered; ${\sim}4$\,\AA{} collagen
+        validation error).
+  \item \textbf{P4.5 (code)} --- optional: wire real ETKDG coordinates into
+        Models F/G (manuscript caveat already present).
+  \item \textbf{Figures} --- refresh any PDF figures that still annotate
+        pre-B6 CSI values.
 \end{enumerate}
 
 \end{document}

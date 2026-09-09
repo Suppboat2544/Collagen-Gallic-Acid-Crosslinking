@@ -61,7 +61,7 @@
       "wall_time_s": 39083.989871025085
     }
   },
-  "metric_note": "models.*.best_val_rmse values below are from single-split training logs (results/option_*_training.json). Manuscript Table IV uses LOLO-CV; see biorxiv_table_iv_lolo_cv. Model D best_epoch=45 / val_RMSE\u22480.549 is the single-fold IG checkpoint, not Table IV LOLO affinity RMSE.",
+  "metric_note": "HISTORICAL / WITHDRAWN Table IV numbers below (pre-remediation). Do not cite. Verified post-B6 values live in docs/remediation_outputs/ and the root readme.md (Model A RMSE 1.338 / rho 0.176; Model D CSI rho -0.60).",
   "biorxiv_table_iv_lolo_cv": {
     "source": "Phukhao/Proposal_LLNL/Proposal_LLNL_bioRxiv.tex Table IV (tab:gnn)",
     "units": "kcal/mol for RMSE/MAE; Spearman for rho and csi_rho",
@@ -129,6 +129,31 @@
         "rho": 0.91,
         "csi_rho": 0.85
       }
+    },
+    "status": "withdrawn_do_not_cite"
+  },
+  "verified_post_b6_schema2": {
+    "model_A_affinity_lolo": {
+      "rmse": 1.338,
+      "mae": 1.248,
+      "spearman_rho": 0.176,
+      "folds_beat_global_mean": "3/9",
+      "source": "docs/remediation_outputs/lolo_schema2_b6/lolo_A.json"
+    },
+    "baselines": {
+      "global_mean_rmse": 1.066,
+      "per_box_mean_rmse": 0.977
+    },
+    "model_D_csi_lolo": {
+      "spearman_rho": -0.6,
+      "n_ligands": 5,
+      "p_value": 0.285,
+      "source": "docs/remediation_outputs/csi_ig_schema2_b6/csi_spearman_lolo_D.json"
+    },
+    "vinardo_csi_pooled": {
+      "pentagalloylglucose": 1.21,
+      "ellagic_acid": 1.05,
+      "note": "CSI>1 = MMP-1 preference; prior PGG CSI~0.84 withdrawn"
     }
   }
 }
