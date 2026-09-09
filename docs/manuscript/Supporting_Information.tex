@@ -8,11 +8,12 @@
 \documentclass[11pt]{article}
 
 \usepackage{caption}
+\captionsetup{font=footnotesize,labelfont=bf,skip=6pt}
 \usepackage{float}
 \usepackage[T1]{fontenc}
 \usepackage{graphicx}
 \usepackage[utf8]{inputenc}
-\usepackage{txfonts}
+\usepackage{lmodern}
 \usepackage[svgnames]{xcolor}
 \usepackage{booktabs}
 \usepackage{multirow}
@@ -43,13 +44,13 @@
 % ---- TikZ styles (crosslinking workflow) ----
 \tikzset{
   redbox/.style={rectangle, draw=black, fill=red!25, text width=3.2cm,
-    align=center, minimum height=1.2cm, font=\small},
+    align=center, minimum height=1.2cm, font=\footnotesize},
   greenbox/.style={rectangle, draw=black, fill=green!35, text width=3.2cm,
-    align=center, minimum height=1.2cm, font=\small},
+    align=center, minimum height=1.2cm, font=\footnotesize},
   purplebox/.style={rectangle, draw=purple, thick, text width=3.2cm,
-    align=center, minimum height=1.2cm, font=\small},
+    align=center, minimum height=1.2cm, font=\footnotesize},
   whitebox/.style={rectangle, draw=black, text width=2.8cm,
-    align=center, minimum height=1cm, font=\small},
+    align=center, minimum height=1cm, font=\footnotesize},
   mixnode/.style={circle, draw=black, minimum size=0.5cm, inner sep=0pt},
   arrow/.style={-{Stealth}, thick}
 }
@@ -95,7 +96,7 @@ Supaporn Klabklaydee$^{3}$,
 Noppakorn Subsa-ard$^{4}$,
 Nontaphat Charuvajana$^{5}$,
 Atichat Uppakarnsang$^{6}$\\[4pt]
-{\small
+{\footnotesize
 $^{1}$University of Liverpool \quad
 $^{2}$Chulalongkorn University \quad
 $^{3}$Fujii Laboratory, Institute of Science Tokyo\\
@@ -698,7 +699,7 @@ times or mesoporous scaffold delivery may be required to achieve full penetratio
 
 % ---- Table S1: Full 9-ligand statistics across all conditions ----
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Comprehensive binding statistics for all nine ligands
   across the complete pH and temperature matrix.}
@@ -775,7 +776,7 @@ times or mesoporous scaffold delivery may be required to achieve full penetratio
 
 % ---- Table S2: Tukey HSD pairwise matrix ----
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Tukey HSD pairwise comparison matrix for all 36 ligand pairs.}
   Upper triangle: mean difference in $\Delta G$ (kcal/mol; row $-$ column).
@@ -798,13 +799,13 @@ times or mesoporous scaffold delivery may be required to achieve full penetratio
 \textbf{ELA} & $^{***}$ & $^{***}$ & $^{***}$ & $^{***}$ & $^{***}$ & $^{***}$ & $^{***}$ & ---   & $+0.83$ \\
 \textbf{PGG} & $^{***}$ & $^{***}$ & $^{***}$ & $^{***}$ & $^{***}$ & $^{***}$ & $^{***}$ & $^{***}$ & --- \\
 \bottomrule
-\multicolumn{10}{l}{\small Upper triangle: mean $\Delta G$ difference (kcal/mol); lower triangle: Tukey-corrected $p$-value ($^{***} p < 0.001$).}
+\multicolumn{10}{l}{\footnotesize Upper triangle: mean $\Delta G$ difference (kcal/mol); lower triangle: Tukey-corrected $p$-value ($^{***} p < 0.001$).}
 \end{tabular}
 \end{table}
 
 % ---- Table S3: pH-stratified statistics all 9 ligands ----
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{pH-stratified mean binding energies} (kcal/mol) pooled over
   all temperatures and boxes ($n = 228$ per ligand per pH).
@@ -832,7 +833,7 @@ PGG                  & $-5.832$ & $-5.786$ & $-5.795$ & 0.046 & 0.232 & 0.791 & 
 
 % ---- Table S4: Temperature-stratified statistics all 9 ligands ----
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Temperature-stratified mean binding energies} (kcal/mol) pooled
   over all pH values and boxes ($n = 228$ per ligand per temperature).
@@ -861,7 +862,7 @@ PGG                  & $-5.811$ & $-5.810$ & $-5.817$ & 0.007 & 0.224 & 0.801 & 
 
 % ---- Table S5: Per-group detailed statistics ----
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Ligand group statistics and between-group ANOVA.}
   Primary = gallic acid + EDC + NHS ($n = 2{,}052$);
@@ -883,14 +884,14 @@ GA analogues           & 2736 & $-4.475$ & 1.208 & $-4.21$ & $-9.10$ & $-2.50$ &
 \midrule
 \textbf{All ligands}   & 6156 & $-3.827$ & 1.074 & $-3.74$ & $-9.10$ & $-2.10$ & 1.14 \\
 \midrule
-\multicolumn{8}{l}{\small Between-group ANOVA: $F_{2,6153} = 1305.45$, $p < 10^{-300}$, $\eta^2 = 0.298$.} \\
+\multicolumn{8}{l}{\footnotesize Between-group ANOVA: $F_{2,6153} = 1305.45$, $p < 10^{-300}$, $\eta^2 = 0.298$.} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 % ---- Table S6: MMP-1 per-box results ----
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{MMP-1 (PDB 966C) docking results by box cluster and ligand}
   at pH~5.5, 25~$^\circ$C.
@@ -938,7 +939,7 @@ GA analogues           & 2736 & $-4.475$ & 1.208 & $-4.21$ & $-9.10$ & $-2.50$ &
 
 % ---- Table S7: Galloyl analogue SAR ----
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Extended structure--activity relationship of galloyl analogues}
   at proposal conditions (pH~5.5, 25~$^\circ$C; $n = 76$ per compound).
@@ -965,7 +966,7 @@ PGG                 & 5 (ester)    & 67 & $-5.79$ & $-1.97$ & $-5.79$ & $-7.33$ 
 
 % ---- Table S8: Interaction counts ----
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Protein--ligand interaction counts} across all 6,156 collagen
   docking runs (PLIP; all conditions and boxes pooled).
@@ -1858,7 +1859,7 @@ $\mathbf{x}_i^{\mathrm{lig}} \in \mathbb{R}^{35}$ constructed from
 RDKit molecular properties as shown in Table~\ref{tab:si_lig_feat}.
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Ligand atom feature vector} ($D = 35$).
   Each row specifies a contiguous segment of the feature vector.
@@ -1886,7 +1887,7 @@ Each covalent bond $(i, j) \in \mathcal{E}_{\mathrm{bond}}$ is described by
 $\mathbf{e}_{ij}^{\mathrm{bond}} \in \mathbb{R}^{13}$ (Table~\ref{tab:si_bond_feat}).
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Ligand bond (edge) feature vector} ($D = 13$).}
 \label{tab:si_bond_feat}
@@ -1909,7 +1910,7 @@ Each residue $j$ is described by
 $\mathbf{x}_j^{\mathrm{res}} \in \mathbb{R}^{30}$ (Table~\ref{tab:si_prot_feat}).
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Protein residue feature vector} ($D = 30$).
   Backbone torsion angles $\phi$ and $\psi$ are encoded as
@@ -1952,7 +1953,7 @@ Edges are constructed when the minimum heavy-atom distance between
 ligand atom $i$ and any atom of residue $j$ is less than 4.5~\AA.
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Bipartite interaction edge feature vector} ($D = 8$).
   Features encode geometric proximity, hydrogen-bond complementarity,
@@ -2764,7 +2765,7 @@ comparison.
 Table~\ref{tab:si_training} summarises the shared training hyperparameters.
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Shared training hyperparameters} applied to all nine models
   unless otherwise noted.}
@@ -2810,7 +2811,7 @@ Table~\ref{tab:si_model_hyper} lists architecture-specific hyperparameters
 that differ from the shared defaults.
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Architecture-specific hyperparameters} for Models~A--I.
   $H$~=~hidden dim, $L$~=~GNN layers, $K$~=~attention heads,
@@ -2850,7 +2851,7 @@ samples in order of increasing molecular complexity
 (Table~\ref{tab:si_curriculum}).
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Curriculum learning stages.}
   The dataset is partitioned by ligand into three complexity tiers.
@@ -3075,7 +3076,7 @@ SI~Section~8; differences in convergence time reflect architectural
 complexity and computational cost.
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Comparative model performance.}
   Best validation-set metrics and training wall time for each architecture.
@@ -3131,7 +3132,7 @@ Table~\ref{tab:app_convergence} summarises the convergence behaviour
 across all nine models.
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Convergence statistics.}
   Total epochs run, convergence speed (epochs to reach within 5\% of
@@ -3216,7 +3217,7 @@ Table~\ref{tab:app_ligand_catalogue} provides the complete chemical
 metadata for all nine ligands used in the docking study and GNN training.
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Complete ligand catalogue.}
   All nine compounds with SMILES, molecular weight, atom counts,
@@ -3284,7 +3285,7 @@ Table~\ref{tab:app_propka} lists the PropKa p$K_a$ values and resulting
 pH encodings for each ligand.
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{PropKa protonation encoding.}
   p$K_a$ values for ionisable groups and resulting pH encoding at
@@ -3315,7 +3316,7 @@ Eight docking box types are used, each centred on clusters of specific
 amino acid residues on the collagen surface:
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Docking box types} and their targeting strategy.
   Each box is mapped to a 16-dimensional learned embedding via
@@ -3358,7 +3359,7 @@ Table~\ref{tab:app_shap_ranking} presents the full ranking of all~35
 ligand node features by global mean absolute IG attribution.
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Global feature importance ranking (Model~D).}
   All 35 ligand node features ranked by mean $|\operatorname{IG}|$
@@ -3402,7 +3403,7 @@ Aggregating individual features into chemically meaningful groups
 conjugation-related descriptors.
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Feature group importance (Model~D).}
   Mean $|\operatorname{IG}|$ averaged across features within each group,
@@ -3500,7 +3501,7 @@ conducted on one representative sample per ligand (collagen $\Delta G$
 head, $n_{\mathrm{steps}} = 50$, zero baseline).
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Per-ligand Integrated Gradients summary (Model~D).}
   $N$ = number of heavy atoms; $\bar{I}$ = mean atom importance;
@@ -3644,7 +3645,7 @@ Four diagnostic probing tasks are defined:
 \subsection*{F.1\quad Probing Task Definitions}
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Probing task specifications.}
   Each probe is a lightweight linear or 1-hidden-layer MLP classifier
@@ -3766,7 +3767,7 @@ retrosynthetically meaningful bond cleavage points.
 For the nine-ligand panel, typical fragment counts are:
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{BRICS fragment counts} for each ligand.
   Larger molecules produce more fragments, enabling finer-grained
@@ -3807,7 +3808,7 @@ Table~\ref{tab:app_software} lists all major software dependencies
 and their versions.
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Software dependencies} for the GNN pipeline.
   All packages installed via pip in a Python 3.13 virtual environment.}
@@ -3833,7 +3834,7 @@ scikit-learn     & 1.6+          & ML utilities       & BSD-3 \\
 \subsection*{H.2\quad Computational Resources}
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Computational resources and training times.}
   All models trained on a single workstation.
@@ -3897,7 +3898,7 @@ Table~\ref{tab:app_notation} provides a comprehensive reference for
 all mathematical notation used throughout the Supporting Information.
 
 \begin{table}[H]
-\small
+\footnotesize
 \centering
 \caption{\textbf{Notation reference} for mathematical symbols used in
   SI Sections~5--9 and Appendices~A--G.}
