@@ -30,9 +30,14 @@ for g in ds:
 print(f"MMP-1 graphs={n_mmp} empty_protein={n_empty}")
 PY
 
-echo "=== LOLO Model A + baselines ==="
+echo "=== LOLO Model A + baselines (CPU; reuse cache unless FORCE_RELOAD=1) ==="
+RELOAD_FLAG=()
+if [[ "${FORCE_RELOAD:-0}" == "1" ]]; then
+  RELOAD_FLAG=(--force-reload)
+fi
 "$PY" scripts/run_lolo.py --model A --epochs 50 --seeds 0 \
-  --force-reload \
+  --device cpu --batch-size 8 \
+  "${RELOAD_FLAG[@]}" \
   --results-dir "$ROOT/Graph_model/results/lolo_schema2_b6" \
   -v
 

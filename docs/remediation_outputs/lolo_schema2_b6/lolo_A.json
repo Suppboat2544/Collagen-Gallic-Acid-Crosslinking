@@ -1,0 +1,36 @@
+{
+  "n_graphs": 6276,
+  "model": "A",
+  "seeds": [
+    0
+  ],
+  "epochs": 50,
+  "baselines": {
+    "global_mean": {
+      "rmse_mean": 1.065552857097799,
+      "rmse_std": 0.7409885461752471,
+      "n_folds": 9
+    },
+    "per_box_mean": {
+      "rmse_mean": 0.9773135119459373,
+      "rmse_std": 0.7570701953697325,
+      "n_folds": 9
+    }
+  },
+  "runs": [
+    {
+      "rmse_mean": 1.3379168971482571,
+      "rmse_std": 0.8680354355791633,
+      "mae_mean": 1.2475773384612534,
+      "mae_std": 0.8561737920757163,
+      "pearson_r_mean": 0.33203679632457533,
+      "pearson_r_std": 0.1406097834401766,
+      "spearman_r_mean": 0.17632126876985457,
+      "spearman_r_std": 0.07449546779873266,
+      "r2_mean": -10.617854110996188,
+      "r2_std": 16.498836968885815,
+      "n_folds": 9,
+      "n_total_test": 6276
+    }
+  ]
+}

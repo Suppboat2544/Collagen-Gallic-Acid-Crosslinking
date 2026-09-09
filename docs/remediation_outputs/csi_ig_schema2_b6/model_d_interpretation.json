@@ -1,0 +1,454 @@
+{
+  "checkpoint": "/Users/suppboat/Jupyter_Dock/Graph_model/results/csi_ig_schema2_b6/model_d_best.pt",
+  "ckpt_meta": {
+    "best_epoch": 10,
+    "best_val_rmse": 0.40289490446212745,
+    "held_out": "pentagalloylglucose",
+    "source": "lolo_fold_pgg"
+  },
+  "n_steps": 50,
+  "target": "collagen_head",
+  "per_ligand": {
+    "EDC": {
+      "graph_idx": 684,
+      "n_atoms": 11,
+      "convergence_delta": -0.23849350214004517,
+      "mean_importance": 0.0983385294675827,
+      "max_importance": 0.23591209948062897,
+      "std_importance": 0.055202193558216095,
+      "top_atoms": [
+        {
+          "atom_idx": 3,
+          "importance": 0.23591209948062897
+        },
+        {
+          "atom_idx": 6,
+          "importance": 0.13603371381759644
+        },
+        {
+          "atom_idx": 7,
+          "importance": 0.12326131761074066
+        },
+        {
+          "atom_idx": 8,
+          "importance": 0.11196539551019669
+        },
+        {
+          "atom_idx": 5,
+          "importance": 0.10884982347488403
+        },
+        {
+          "atom_idx": 2,
+          "importance": 0.0885230228304863
+        },
+        {
+          "atom_idx": 1,
+          "importance": 0.08845204859972
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.08092495054006577
+        },
+        {
+          "atom_idx": 0,
+          "importance": 0.043004464358091354
+        },
+        {
+          "atom_idx": 9,
+          "importance": 0.03239842876791954
+        }
+      ]
+    },
+    "EDC_Oacylisourea": {
+      "graph_idx": 2052,
+      "n_atoms": 16,
+      "convergence_delta": -0.17798545956611633,
+      "mean_importance": 0.06582855433225632,
+      "max_importance": 0.10332507640123367,
+      "std_importance": 0.025134257972240448,
+      "top_atoms": [
+        {
+          "atom_idx": 2,
+          "importance": 0.10332507640123367
+        },
+        {
+          "atom_idx": 11,
+          "importance": 0.10313741862773895
+        },
+        {
+          "atom_idx": 5,
+          "importance": 0.09643032401800156
+        },
+        {
+          "atom_idx": 12,
+          "importance": 0.09474831074476242
+        },
+        {
+          "atom_idx": 13,
+          "importance": 0.08641568571329117
+        },
+        {
+          "atom_idx": 10,
+          "importance": 0.07647742331027985
+        },
+        {
+          "atom_idx": 1,
+          "importance": 0.06560177356004715
+        },
+        {
+          "atom_idx": 7,
+          "importance": 0.06387510895729065
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.06317472457885742
+        },
+        {
+          "atom_idx": 6,
+          "importance": 0.060824327170848846
+        }
+      ]
+    },
+    "NHS": {
+      "graph_idx": 1368,
+      "n_atoms": 8,
+      "convergence_delta": -0.08003866672515869,
+      "mean_importance": 0.28367501497268677,
+      "max_importance": 0.4047579765319824,
+      "std_importance": 0.09190341085195541,
+      "top_atoms": [
+        {
+          "atom_idx": 2,
+          "importance": 0.4047579765319824
+        },
+        {
+          "atom_idx": 3,
+          "importance": 0.3843672275543213
+        },
+        {
+          "atom_idx": 1,
+          "importance": 0.32646772265434265
+        },
+        {
+          "atom_idx": 6,
+          "importance": 0.32320436835289
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.3160703778266907
+        },
+        {
+          "atom_idx": 0,
+          "importance": 0.18543846905231476
+        },
+        {
+          "atom_idx": 5,
+          "importance": 0.1766553819179535
+        },
+        {
+          "atom_idx": 7,
+          "importance": 0.1524384766817093
+        }
+      ]
+    },
+    "NHS_ester_intermediate": {
+      "graph_idx": 2736,
+      "n_atoms": 12,
+      "convergence_delta": -0.10242059826850891,
+      "mean_importance": 0.1647699624300003,
+      "max_importance": 0.26158422231674194,
+      "std_importance": 0.07044575363397598,
+      "top_atoms": [
+        {
+          "atom_idx": 8,
+          "importance": 0.26158422231674194
+        },
+        {
+          "atom_idx": 9,
+          "importance": 0.26158422231674194
+        },
+        {
+          "atom_idx": 5,
+          "importance": 0.23710598051548004
+        },
+        {
+          "atom_idx": 6,
+          "importance": 0.21502995491027832
+        },
+        {
+          "atom_idx": 10,
+          "importance": 0.21502995491027832
+        },
+        {
+          "atom_idx": 2,
+          "importance": 0.2061930149793625
+        },
+        {
+          "atom_idx": 1,
+          "importance": 0.12165325880050659
+        },
+        {
+          "atom_idx": 3,
+          "importance": 0.10427828878164291
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.09880410134792328
+        },
+        {
+          "atom_idx": 7,
+          "importance": 0.08565627038478851
+        }
+      ]
+    },
+    "ellagic_acid": {
+      "graph_idx": 4788,
+      "n_atoms": 22,
+      "convergence_delta": 0.6347551345825195,
+      "mean_importance": 0.10367913544178009,
+      "max_importance": 0.14559175074100494,
+      "std_importance": 0.021809162572026253,
+      "top_atoms": [
+        {
+          "atom_idx": 10,
+          "importance": 0.14559175074100494
+        },
+        {
+          "atom_idx": 1,
+          "importance": 0.14559175074100494
+        },
+        {
+          "atom_idx": 3,
+          "importance": 0.12526440620422363
+        },
+        {
+          "atom_idx": 13,
+          "importance": 0.12526440620422363
+        },
+        {
+          "atom_idx": 18,
+          "importance": 0.12293082475662231
+        },
+        {
+          "atom_idx": 8,
+          "importance": 0.12293082475662231
+        },
+        {
+          "atom_idx": 20,
+          "importance": 0.11926756054162979
+        },
+        {
+          "atom_idx": 21,
+          "importance": 0.11926756054162979
+        },
+        {
+          "atom_idx": 19,
+          "importance": 0.10469494014978409
+        },
+        {
+          "atom_idx": 9,
+          "importance": 0.10469493269920349
+        }
+      ]
+    },
+    "gallic_acid": {
+      "graph_idx": 0,
+      "n_atoms": 12,
+      "convergence_delta": 0.4488579034805298,
+      "mean_importance": 0.1765848845243454,
+      "max_importance": 0.29229772090911865,
+      "std_importance": 0.044691018760204315,
+      "top_atoms": [
+        {
+          "atom_idx": 1,
+          "importance": 0.29229772090911865
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.215410053730011
+        },
+        {
+          "atom_idx": 11,
+          "importance": 0.215410053730011
+        },
+        {
+          "atom_idx": 8,
+          "importance": 0.19696860015392303
+        },
+        {
+          "atom_idx": 2,
+          "importance": 0.17695152759552002
+        },
+        {
+          "atom_idx": 6,
+          "importance": 0.15735939145088196
+        },
+        {
+          "atom_idx": 10,
+          "importance": 0.15735937654972076
+        },
+        {
+          "atom_idx": 3,
+          "importance": 0.153058722615242
+        },
+        {
+          "atom_idx": 0,
+          "importance": 0.14192387461662292
+        },
+        {
+          "atom_idx": 9,
+          "importance": 0.14040762186050415
+        }
+      ]
+    },
+    "pentagalloylglucose": {
+      "graph_idx": 5472,
+      "n_atoms": 67,
+      "convergence_delta": 0.4937146306037903,
+      "mean_importance": 0.03335066884756088,
+      "max_importance": 0.06262587010860443,
+      "std_importance": 0.010376213118433952,
+      "top_atoms": [
+        {
+          "atom_idx": 1,
+          "importance": 0.06262587010860443
+        },
+        {
+          "atom_idx": 34,
+          "importance": 0.060702353715896606
+        },
+        {
+          "atom_idx": 47,
+          "importance": 0.06054233759641647
+        },
+        {
+          "atom_idx": 21,
+          "importance": 0.06036951392889023
+        },
+        {
+          "atom_idx": 8,
+          "importance": 0.060131482779979706
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.055233072489500046
+        },
+        {
+          "atom_idx": 6,
+          "importance": 0.05288105458021164
+        },
+        {
+          "atom_idx": 32,
+          "importance": 0.046332165598869324
+        },
+        {
+          "atom_idx": 45,
+          "importance": 0.04277342930436134
+        },
+        {
+          "atom_idx": 19,
+          "importance": 0.040574200451374054
+        }
+      ]
+    },
+    "protocatechuic_acid": {
+      "graph_idx": 3420,
+      "n_atoms": 11,
+      "convergence_delta": 0.4388453960418701,
+      "mean_importance": 0.19571305811405182,
+      "max_importance": 0.3153923749923706,
+      "std_importance": 0.049149710685014725,
+      "top_atoms": [
+        {
+          "atom_idx": 1,
+          "importance": 0.3153923749923706
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.24249188601970673
+        },
+        {
+          "atom_idx": 10,
+          "importance": 0.233545184135437
+        },
+        {
+          "atom_idx": 5,
+          "importance": 0.20908577740192413
+        },
+        {
+          "atom_idx": 2,
+          "importance": 0.19187237322330475
+        },
+        {
+          "atom_idx": 3,
+          "importance": 0.18006397783756256
+        },
+        {
+          "atom_idx": 9,
+          "importance": 0.17049968242645264
+        },
+        {
+          "atom_idx": 7,
+          "importance": 0.15894809365272522
+        },
+        {
+          "atom_idx": 0,
+          "importance": 0.15344762802124023
+        },
+        {
+          "atom_idx": 8,
+          "importance": 0.150535449385643
+        }
+      ]
+    },
+    "pyrogallol": {
+      "graph_idx": 4104,
+      "n_atoms": 9,
+      "convergence_delta": 0.2598826289176941,
+      "mean_importance": 0.22478845715522766,
+      "max_importance": 0.27913686633110046,
+      "std_importance": 0.032110270112752914,
+      "top_atoms": [
+        {
+          "atom_idx": 8,
+          "importance": 0.27913686633110046
+        },
+        {
+          "atom_idx": 3,
+          "importance": 0.2621048390865326
+        },
+        {
+          "atom_idx": 0,
+          "importance": 0.23308607935905457
+        },
+        {
+          "atom_idx": 6,
+          "importance": 0.23308607935905457
+        },
+        {
+          "atom_idx": 2,
+          "importance": 0.22987602651119232
+        },
+        {
+          "atom_idx": 4,
+          "importance": 0.22987602651119232
+        },
+        {
+          "atom_idx": 1,
+          "importance": 0.1886833757162094
+        },
+        {
+          "atom_idx": 5,
+          "importance": 0.1886833757162094
+        },
+        {
+          "atom_idx": 7,
+          "importance": 0.17856355011463165
+        }
+      ]
+    }
+  },
+  "pgg_keys": [
+    "pentagalloylglucose"
+  ]
+}

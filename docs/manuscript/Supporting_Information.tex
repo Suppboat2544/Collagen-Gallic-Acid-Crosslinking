@@ -76,15 +76,16 @@
 \begin{document}
 
 \noindent\textbf{Remediation note (2026-09).}
-Main-text Table~IV LOLO affinity metrics are reconciled to
-RMSE\,$\approx$\,1.05\,kcal/mol and Spearman $\rho \approx 0.16$
-(vs.\ trivial baselines 0.992 / 0.918); prior $\rho \approx 0.93$ does
-not reproduce.
-NHS and NHS-ester structures have been re-docked; PGG re-docking and
-schema-2 LOLO re-train remain in progress---see
-\texttt{docs/REMEDIATION\_STATUS.md} in the code repository.
-SI appendices that quote older CSI Spearman values should be read as
-historical until recomputed.
+Main-text Table~IV LOLO affinity metrics (post--B6 schema-2 re-train)
+are RMSE\,$= 1.338$\,kcal/mol, MAE\,$= 1.248$, Spearman $\rho = 0.176$
+(vs.\ trivial baselines 1.066 / 0.977); only 3/9 folds beat the
+global-mean baseline; prior affinity $\rho \approx 0.93$ does not reproduce.
+Model~D LOLO CSI Spearman is $\rho = -0.60$ ($n{=}5$, $p{=}0.28$);
+prior CSI $\rho \approx 0.95$ does not reproduce.
+Pooled Vinardo CSI after corrected PGG docks: PGG\,1.21, ellagic\,1.05
+(neither CSI\,$< 1$).
+PGG IG recomputed on 67 heavy atoms ($\bar{I} \approx 0.033$).
+See \texttt{docs/REMEDIATION\_STATUS.md} in the code repository.
 
 % ---- Title block ----
 \begin{center}
@@ -3124,11 +3125,10 @@ I & \textbf{Graphormer}    &  84 & \textbf{1.338} & --- & --- & 10.9 \\
     rate mismatch; the fragment-additive inductive bias may be too
     restrictive for this dataset size.
   \item \textbf{Model~D} trains on a smaller subset (5,267 samples) due
-    to the MMP-1 data requirement. Previously reported CSI Spearman
-    $\rho = 0.95$ is \emph{not} validated under the same LOLO protocol as
-    the main-text affinity metrics (Table~IV of the main manuscript;
-    LOLO $\rho \approx 0.16$) and must be recomputed after B6 ligand
-    re-docking and MMP-1 box remediation.
+    to the MMP-1 data requirement. Post--B6 Model~D LOLO CSI Spearman
+    is $\rho = -0.60$ ($n{=}5$, $p{=}0.28$); the previously reported
+    $\rho = 0.95$ does \emph{not} reproduce and is withdrawn
+    (Model~A affinity LOLO $\rho \approx 0.18$).
 \end{itemize}
 
 \subsection*{A.2\quad Convergence Analysis}
@@ -3519,34 +3519,30 @@ head, $n_{\mathrm{steps}} = 50$, zero baseline).
 \textbf{Ligand} & $N$ & $\bar{I}$ & $I_{\max}$
   & $\sigma_I$ & $\delta$ \\
 \midrule
-EDC                  & 11 & 0.090 & 0.358 & 0.087 & $-0.160$ \\
-EDC $O$-acylisourea  & 16 & 0.043 & 0.081 & 0.013 & $-0.072$ \\
-NHS                  &  7 & 0.153 & 0.233 & 0.055 & $-0.134$ \\
-NHS ester interm.    & 11 & 0.050 & 0.096 & 0.024 & $-0.063$ \\
+EDC                  & 11 & 0.098 & 0.236 & 0.055 & $-0.238$ \\
+EDC $O$-acylisourea  & 16 & 0.066 & 0.103 & 0.025 & $-0.178$ \\
+NHS                  &  8 & 0.284 & 0.405 & 0.092 & $-0.080$ \\
+NHS ester interm.    & 12 & 0.165 & 0.262 & 0.070 & $-0.102$ \\
 \midrule
-Gallic acid          & 12 & 0.439 & 0.666 & 0.172 & $+0.692$ \\
-Protocatechuic acid  & 11 & 0.429 & 0.744 & 0.181 & $+0.580$ \\
-Pyrogallol           &  9 & 0.295 & 0.538 & 0.163 & $+0.430$ \\
-Ellagic acid         & 22 & 0.349 & 0.477 & 0.093 & $+1.045$ \\
-PGG                  & 81 & 0.097 & 0.216 & 0.041 & $+1.066$ \\
+Gallic acid          & 12 & 0.177 & 0.292 & 0.045 & $+0.449$ \\
+Protocatechuic acid  & 11 & 0.196 & 0.315 & 0.049 & $+0.439$ \\
+Pyrogallol           &  9 & 0.225 & 0.279 & 0.032 & $+0.260$ \\
+Ellagic acid         & 22 & 0.104 & 0.146 & 0.022 & $+0.635$ \\
+PGG                  & 67 & 0.033 & 0.063 & 0.010 & $+0.494$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \paragraph{Key findings.}
 \begin{itemize}[leftmargin=1.5em]
-  \item GA analogues show 3--10$\times$ higher mean atom importance
-    than crosslinkers, confirming that Model~D recognises the
-    galloyl pharmacophore as the primary binding determinant.
-  \item Gallic acid has the highest per-atom importance ($\bar{I} = 0.439$)
-    despite having only 12 heavy atoms, suggesting concentrated
-    binding contributions from each atom.
-  \item PGG's lower per-atom importance ($\bar{I} = 0.097$) reflects
-    its large size (81 atoms) --- the total molecular attribution
-    ($81 \times 0.097 = 7.86$) is actually the highest of all ligands.
-  \item Positive convergence deltas for GA analogues and negative
-    for crosslinkers may indicate opposite gradient directions
-    in the attribution landscape.
+  \item Compact phenols retain higher mean per-atom importance than PGG
+    after B6 correction (PGG $N{=}67$, catalogue C$_{41}$H$_{32}$O$_{26}$).
+  \item Prior SI rows quoting PGG $N{=}81$ referred to the wrong
+    tri-$O$-galloyl fragment and are withdrawn.
+  \item PGG's lower $\bar{I}$ reflects size dilution; total attribution
+    $67 \times 0.033 \approx 2.2$ remains substantial.
+  \item Checkpoint: Model~D PGG held-out LOLO fold (epoch\,10,
+    val\_RMSE\,=\,0.403\,kcal/mol).
 \end{itemize}
 
 \subsection*{D.2\quad Grad-CAM Results}

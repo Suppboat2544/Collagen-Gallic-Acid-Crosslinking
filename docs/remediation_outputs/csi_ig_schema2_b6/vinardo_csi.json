@@ -1,0 +1,56 @@
+{
+  "definition": "CSI = |mean_dG_MMP1| / |mean_dG_collagen_T25|",
+  "ligands": [
+    {
+      "ligand": "ellagic_acid",
+      "n_collagen_T25": 228,
+      "n_mmp1": 24,
+      "mean_dG_collagen": -4.9828947368421055,
+      "mean_dG_mmp1": -5.25,
+      "csi": 1.0536044362292052,
+      "collagen_selective": false,
+      "formula": "C14H6O8"
+    },
+    {
+      "ligand": "gallic_acid",
+      "n_collagen_T25": 228,
+      "n_mmp1": 24,
+      "mean_dG_collagen": -3.821491228070175,
+      "mean_dG_mmp1": -4.595833333333333,
+      "csi": 1.202628256628027,
+      "collagen_selective": false,
+      "formula": "C7H6O5"
+    },
+    {
+      "ligand": "pentagalloylglucose",
+      "n_collagen_T25": 228,
+      "n_mmp1": 24,
+      "mean_dG_collagen": -6.343009035087719,
+      "mean_dG_mmp1": -7.675,
+      "csi": 1.2099935468393765,
+      "collagen_selective": false,
+      "formula": "C41H32O26"
+    },
+    {
+      "ligand": "protocatechuic_acid",
+      "n_collagen_T25": 228,
+      "n_mmp1": 24,
+      "mean_dG_collagen": -3.785526315789473,
+      "mean_dG_mmp1": -4.5375000000000005,
+      "csi": 1.1986444212721588,
+      "collagen_selective": false,
+      "formula": "C7H6O4"
+    },
+    {
+      "ligand": "pyrogallol",
+      "n_collagen_T25": 228,
+      "n_mmp1": 24,
+      "mean_dG_collagen": -3.3157894736842106,
+      "mean_dG_mmp1": -4.095833333333333,
+      "csi": 1.2352513227513227,
+      "collagen_selective": false,
+      "formula": "C6H6O3"
+    }
+  ],
+  "n_selective": 0
+}

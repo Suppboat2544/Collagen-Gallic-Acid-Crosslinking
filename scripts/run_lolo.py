@@ -204,6 +204,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-mmp1", action="store_true")
     ap.add_argument("--force-reload", action="store_true",
                     help="Ignore the cached graphs and rebuild.")
+    ap.add_argument("--device", default="auto",
+                    choices=("auto", "cpu", "cuda", "mps"),
+                    help="Compute device (prefer cpu when disk is tight).")
     ap.add_argument("--baselines-only", action="store_true",
                     help="Compute trivial baselines and exit.")
     ap.add_argument("--skip-baselines", action="store_true")
@@ -268,6 +271,7 @@ def main(argv: list[str] | None = None) -> int:
             lr=args.lr,
             val_ratio=args.val_ratio,
             seed=seed,
+            device=args.device,
         )
         runs.append(out.get("aggregate", {}))
         print(f"seed {seed}: {out.get('aggregate', {})}")

@@ -1,0 +1,117 @@
+{
+  "model": "D",
+  "protocol": "LOLO held-out predicted CSI vs Vinardo CSI",
+  "n_csi_ligands": 5,
+  "spearman_rho": -0.6,
+  "spearman_p": 0.28475697986529386,
+  "folds": [
+    {
+      "fold": 0,
+      "held_out": "EDC",
+      "best_epoch": 23,
+      "val_rmse": 0.5227251672232688,
+      "test_rmse": 0.7110365445294872,
+      "n_test_collagen": 684,
+      "n_test_mmp1": 0
+    },
+    {
+      "fold": 1,
+      "held_out": "EDC_Oacylisourea",
+      "best_epoch": 40,
+      "val_rmse": 0.5261362997884103,
+      "test_rmse": 0.6749039443080086,
+      "n_test_collagen": 684,
+      "n_test_mmp1": 0
+    },
+    {
+      "fold": 2,
+      "held_out": "NHS",
+      "best_epoch": 31,
+      "val_rmse": 0.5127866559643429,
+      "test_rmse": 2.0510833476642385,
+      "n_test_collagen": 684,
+      "n_test_mmp1": 0
+    },
+    {
+      "fold": 3,
+      "held_out": "NHS_ester_intermediate",
+      "best_epoch": 12,
+      "val_rmse": 0.5893672109421817,
+      "test_rmse": 0.8801897104118531,
+      "n_test_collagen": 684,
+      "n_test_mmp1": 0
+    },
+    {
+      "fold": 4,
+      "held_out": "ellagic_acid",
+      "best_epoch": 21,
+      "val_rmse": 0.49829614189059784,
+      "test_rmse": 1.470129552197667,
+      "n_test_collagen": 684,
+      "n_test_mmp1": 24,
+      "mean_pred_collagen": -3.6383648124354626,
+      "mean_pred_mmp1": -4.323408166567485,
+      "csi_pred": 1.1882833056736455,
+      "csi_vinardo": 1.0536044362292052
+    },
+    {
+      "fold": 5,
+      "held_out": "gallic_acid",
+      "best_epoch": 42,
+      "val_rmse": 0.5445987808969266,
+      "test_rmse": 0.4133290477700812,
+      "n_test_collagen": 684,
+      "n_test_mmp1": 24,
+      "mean_pred_collagen": -3.81282583454199,
+      "mean_pred_mmp1": -4.4563519557317095,
+      "csi_pred": 1.1687793120157093,
+      "csi_vinardo": 1.202628256628027
+    },
+    {
+      "fold": 6,
+      "held_out": "pentagalloylglucose",
+      "best_epoch": 10,
+      "val_rmse": 0.40289490446212745,
+      "test_rmse": 2.9837720868334308,
+      "n_test_collagen": 684,
+      "n_test_mmp1": 24,
+      "mean_pred_collagen": -3.5837155263326324,
+      "mean_pred_mmp1": -4.196397523085277,
+      "csi_pred": 1.1709627877131272,
+      "csi_vinardo": 1.2099935468393765
+    },
+    {
+      "fold": 7,
+      "held_out": "protocatechuic_acid",
+      "best_epoch": 14,
+      "val_rmse": 0.5697067460022679,
+      "test_rmse": 0.5508467817047159,
+      "n_test_collagen": 684,
+      "n_test_mmp1": 24,
+      "mean_pred_collagen": -3.4061935240762278,
+      "mean_pred_mmp1": -3.928695638974508,
+      "csi_pred": 1.1533976596470643,
+      "csi_vinardo": 1.1986444212721588
+    },
+    {
+      "fold": 8,
+      "held_out": "pyrogallol",
+      "best_epoch": 36,
+      "val_rmse": 0.5322681262797959,
+      "test_rmse": 1.9593448813773995,
+      "n_test_collagen": 684,
+      "n_test_mmp1": 24,
+      "mean_pred_collagen": -5.2424790057522515,
+      "mean_pred_mmp1": -5.837676664193471,
+      "csi_pred": 1.1135336274667282,
+      "csi_vinardo": 1.2352513227513227
+    }
+  ],
+  "vinardo_csi": {
+    "ellagic_acid": 1.0536044362292052,
+    "gallic_acid": 1.202628256628027,
+    "pentagalloylglucose": 1.2099935468393765,
+    "protocatechuic_acid": 1.1986444212721588,
+    "pyrogallol": 1.2352513227513227
+  }
+}
